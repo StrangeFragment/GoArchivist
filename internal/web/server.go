@@ -28,6 +28,7 @@ func NewServer(address string) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/settings", settingsHandler(page))
 	mux.HandleFunc("/", homeHandler(page))
 	mux.Handle(
 		"/static/",
