@@ -11,13 +11,24 @@ import (
 	"syscall"
 	"time"
 
+	"GoArchivist/internal/config"
+	"GoArchivist/internal/logging"
 	"GoArchivist/internal/web"
 )
 
 func Run() error {
-	const address = ":8080"
+	cfg, paths, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("загрузка конфигурации: %w", err)
+	}
 
-	server, err := web.NewServer(address)
+	logFile, err := logging.Init(paths.LogsDir)
+	if err != nil {
+		return fmt.Errorf("настройка журналирования: %w", err)
+	}
+	defer logFile.Close()
+
+	server, err := web.NewServer(cfg.Web.Address)
 	if err != nil {
 		return err
 	}
@@ -34,7 +45,7 @@ func Run() error {
 		serverErr <- server.ListenAndServe()
 	}()
 
-	log.Printf("GoArchivist запущен: http://localhost%s", address)
+	log.Printf("GoArchivist запущен: http://%s", cfg.Web.Address)
 
 	select {
 	case err := <-serverErr:
