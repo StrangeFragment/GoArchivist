@@ -16,7 +16,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func NewServer(address string) (*Server, error) {
+func NewServer(address string, logFilePath string) (*Server, error) {
 	page, err := template.ParseFS(assets, "templates/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("загрузка HTML-шаблонов: %w", err)
@@ -28,7 +28,8 @@ func NewServer(address string) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/settings", settingsHandler(page))
+	mux.HandleFunc("/settings/clear-logs", clearLogsHandler(logFilePath))
+	mux.HandleFunc("/settings", settingsHandler(page, logFilePath))
 	mux.HandleFunc("/", homeHandler(page))
 	mux.Handle(
 		"/static/",

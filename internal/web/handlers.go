@@ -3,6 +3,7 @@ package web
 import (
 	"html/template"
 	"net/http"
+	"os"
 )
 
 func homeHandler(page *template.Template) http.HandlerFunc {
@@ -26,7 +27,7 @@ func homeHandler(page *template.Template) http.HandlerFunc {
 	}
 }
 
-func settingsHandler(page *template.Template) http.HandlerFunc {
+func settingsHandler(page *template.Template, logFilePath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
@@ -39,13 +40,56 @@ func settingsHandler(page *template.Template) http.HandlerFunc {
 			section = "general"
 		}
 
+		data := struct {
+			Section string
+			Logs    string
+		}{
+			Section: section,
+		}
+
+		if section == "logs" {
+			logs, err := os.ReadFile(logFilePath)
+			if err != nil {
+				http.Error(
+					w,
+					"Не удалось прочитать файл журнала",
+					http.StatusInternalServerError,
+				)
+				return
+			}
+			data.Logs = string(logs)
+		}
+
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-		if err := page.ExecuteTemplate(w, "settings.html", struct {
-			Section string
-		}{Section: section}); err != nil {
-			http.Error(w, "Не удалось отобразить страницу настроек", http.StatusInternalServerError)
+		if err := page.ExecuteTemplate(w, "settings.html", data); err != nil {
+			http.Error(
+				w,
+				"Не удалось отобразить страницу настроек",
+				http.StatusInternalServerError,
+			)
 		}
+	}
+}
+
+func clearLogsHandler(logFilePath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", "POST")
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if err := os.WriteFile(logFilePath, nil, 0o644); err != nil {
+			http.Error(
+				w,
+				"Не удалось очистить файл журнала",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		http.Redirect(w, r, "/settings?section=logs", http.StatusSeeOther)
 	}
 }
 

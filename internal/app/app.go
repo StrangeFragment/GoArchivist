@@ -28,7 +28,10 @@ func Run() error {
 	}
 	defer logFile.Close()
 
-	server, err := web.NewServer(cfg.Web.Address)
+	server, err := web.NewServer(
+		cfg.Web.Address,
+		logging.LogFilePath(paths.LogsDir),
+	)
 	if err != nil {
 		return err
 	}
@@ -53,7 +56,6 @@ func Run() error {
 			return fmt.Errorf("HTTP-сервер: %w", err)
 		}
 		return nil
-
 	case <-signalCtx.Done():
 		log.Println("Получен сигнал завершения; ожидаю окончания запросов...")
 	}
@@ -68,5 +70,6 @@ func Run() error {
 
 	<-serverErr
 	log.Println("HTTP-сервер остановлен")
+
 	return nil
 }
