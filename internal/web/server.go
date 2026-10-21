@@ -30,6 +30,7 @@ func NewServer(address string, logFilePath string) (*Server, error) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/settings/clear-logs", clearLogsHandler(logFilePath))
+	mux.HandleFunc("/settings/archive-directory", archiveDirectoryHandler(page))
 	mux.HandleFunc("/settings", settingsHandler(page, logFilePath))
 	mux.HandleFunc("/", homeHandler(page))
 	mux.Handle(
