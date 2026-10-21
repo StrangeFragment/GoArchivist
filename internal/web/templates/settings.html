@@ -16,6 +16,19 @@
 .archive-path-message { margin: 14px 0 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 6px; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .archive-path-message.success { color: #8de0d3; border-color: rgba(41,199,178,.22); background: rgba(41,199,178,.07); }
 .archive-path-message.error { color: #ff9aa8; border-color: rgba(255,113,133,.22); background: rgba(255,113,133,.07); }
+.imap-settings-card { grid-column: 1 / -1; }
+.imap-status-ok { color: #8de0d3; border-color: rgba(41,199,178,.18); background: rgba(41,199,178,.07); }
+.imap-status-ok .pill-dot { background: var(--teal); }
+.imap-intro { margin: 13px 0 0; color: #899ab5; font-size: 10px; line-height: 1.6; }
+.imap-form { display: grid; gap: 13px; margin-top: 6px; }
+.imap-field-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(120px, .65fr); gap: 10px 13px; }
+.imap-field { display: grid; align-content: start; color: #bdc9dc; font-size: 10px; font-weight: 650; }
+.imap-field .archive-path-input { margin-top: 6px; }
+.imap-form .archive-path-actions { margin-top: 1px; }
+.imap-mailboxes { display: grid; gap: 8px; margin-top: 12px; color: #899ab5; font-size: 10px; }
+.imap-mailboxes > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.imap-mailbox-chip { padding: 4px 7px; color: #b9c8df; border: 1px solid var(--line); border-radius: 5px; background: rgba(255,255,255,.035); font-size: 9px; }
+@media (max-width: 540px) { .imap-field-grid { grid-template-columns: 1fr; } .imap-form .button { width: 100%; white-space: normal; text-align: center; } }
 </style>
 </head>
 <body>
@@ -65,9 +78,23 @@
 </section>
 {{else}}
 <section class="settings-grid">
-<article class="panel settings-card">
-<div class="panel-heading"><div><div class="panel-kicker">ПОЧТОВЫЙ ИСТОЧНИК</div><h2>Подключение IMAP</h2></div><span class="status-pill warning"><span class="pill-dot"></span> Не настроено</span></div>
-<div class="settings-placeholder"><span class="placeholder-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg></span><div><h3>Настройка подключения ещё не реализована</h3><p>Параметры IMAP пока не редактируются через веб-интерфейс. Подключение почтового клиента находится в разработке.</p></div></div>
+<article class="panel settings-card imap-settings-card">
+<div class="panel-heading"><div><div class="panel-kicker">ПОЧТОВЫЙ ИСТОЧНИК</div><h2>Подключение IMAP</h2></div>{{if .IMAPConfigured}}<span class="status-pill imap-status-ok"><span class="pill-dot"></span> Параметры сохранены</span>{{else}}<span class="status-pill warning"><span class="pill-dot"></span> Не настроено</span>{{end}}</div>
+<p class="imap-intro">Введите реквизиты ящика. Они сохранятся в настройках только после успешной проверки защищённого TLS-соединения.</p>
+<form class="imap-form" action="/settings/imap" method="post">
+<div class="imap-field-grid">
+<label class="imap-field">IMAP-сервер<input class="archive-path-input" name="imap_server" type="text" value="{{.IMAPServer}}" placeholder="imap.example.com" autocomplete="url" required></label>
+<label class="imap-field">Порт TLS<input class="archive-path-input" name="imap_port" type="number" min="1" max="65535" value="{{.IMAPPort}}" required></label>
+<label class="imap-field">Имя пользователя<input class="archive-path-input" name="imap_username" type="text" value="{{.IMAPUsername}}" autocomplete="username" required></label>
+<label class="imap-field">Пароль<input class="archive-path-input" name="imap_password" type="password" autocomplete="new-password" placeholder="{{if .IMAPHasPassword}}Оставьте пустым, чтобы сохранить текущий{{else}}Введите пароль{{end}}" {{if not .IMAPHasPassword}}required{{end}}></label>
+<label class="imap-field">Папка для проверки<input class="archive-path-input" name="imap_mailbox" type="text" list="imap-mailboxes" value="{{.IMAPMailbox}}" placeholder="INBOX" autocomplete="off"><datalist id="imap-mailboxes">{{range .Mailboxes}}<option value="{{.}}">{{end}}</datalist></label>
+<label class="imap-field">Интервал, минут<input class="archive-path-input" name="imap_poll_interval" type="number" min="1" max="1440" value="{{.IMAPPollInterval}}" required></label>
+</div>
+<p class="archive-path-help">Используется TLS. Если пароль уже сохранён, поле можно не заполнять. Пароль не отображается в форме.</p>
+<div class="archive-path-actions"><button class="button button-primary" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-5L4 8m0-5v5h5M4 13a8 8 0 0 0 14 5l2-2m0 5v-5h-5"/></svg>Проверить соединение и сохранить</button></div>
+</form>
+{{if .IMAPMessage}}<p class="archive-path-message {{.IMAPMessageType}}" role="status">{{.IMAPMessage}}</p>{{end}}
+{{if .Mailboxes}}<div class="imap-mailboxes"><span>Папки, полученные от сервера:</span><div>{{range .Mailboxes}}<span class="imap-mailbox-chip">{{.}}</span>{{end}}</div></div>{{end}}
 </article>
 <article class="panel settings-card">
 <div class="panel-heading"><div><div class="panel-kicker">ХРАНИЛИЩЕ</div><h2>Папка архива</h2></div></div>
@@ -92,7 +119,7 @@
 <article class="panel settings-card settings-wide">
 <div class="panel-heading"><div><div class="panel-kicker">ДИАГНОСТИКА</div><h2>Состояние приложения</h2></div></div>
 <div class="diagnostic-row"><span class="diagnostic-key"><span class="footer-live-dot"></span> Веб-интерфейс</span><span class="diagnostic-value">Работает</span></div>
-<div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot idle"></span> IMAP-соединение</span><span class="diagnostic-value muted-text">Не подключено</span></div>
+<div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot {{if not .IMAPConfigured}}idle{{end}}"></span> Настройки IMAP</span>{{if .IMAPConfigured}}<span class="diagnostic-value">Сохранены</span>{{else}}<span class="diagnostic-value muted-text">Не настроены</span>{{end}}</div>
 <div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot idle"></span> Архивация</span><span class="diagnostic-value muted-text">Не запущена</span></div>
 <div class="diagnostic-row"><span class="diagnostic-key"><svg class="diagnostic-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg> Журнал событий</span><a class="text-link" href="/settings?section=logs">Открыть журнал →</a></div>
 </article>

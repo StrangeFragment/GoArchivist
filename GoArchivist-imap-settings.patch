@@ -1,0 +1,1124 @@
+diff --git a/README.md b/README.md
+index 1af85bc..4fe17b4 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,6 @@
+ # GoArchivist
+ 
+-Локальное приложение для архивации почты. Сейчас в проекте реализованы веб-интерфейс и системный трей; обработка почты и вложений пока находится в разработке.
++Локальное приложение для архивации почты. Сейчас в проекте реализованы веб-интерфейс и системный трей; загрузка писем и вложений пока находится в разработке.
+ 
+ ## Системный трей
+ 
+@@ -9,6 +9,16 @@
+ - PNG для значка трея встроен в программу через `go:embed`.
+ - Для Windows EXE ICO добавлен в PE-ресурсы; сгенерированный `rsrc_windows_amd64.syso` автоматически подключается Go-линкером при сборке `windows/amd64`.
+ 
++## Настройки IMAP
++
++На странице настроек задаются IMAP-сервер, TLS-порт, имя пользователя, пароль и интервал проверки. Кнопка **Проверить соединение и сохранить** устанавливает TLS-соединение, проверяет авторизацию и получает каталог папок. Параметры подключения сохраняются только после успешной проверки и получения списка папок. В сообщении показывается только результат проверки, без перечня папок.
++
++После подключения в отдельной секции настроек можно отметить папки для будущего наблюдения. При первом подключении по умолчанию включается только **Входящие (INBOX)**; остальные папки выключены. Выбор и каталог сохраняются в SQLite (`goarchivist.db`), а IMAP-имена хранятся отдельно от читаемых названий интерфейса. При повторном обновлении каталога сохраняются предыдущие решения пользователя, новые папки не включаются автоматически.
++
++Если пароль уже сохранён, поле можно оставить пустым, чтобы использовать прежний пароль. Пароль пока хранится в `config.json` в открытом виде; шифрование не входит в текущий этап.
++
++Проверка подключения и выбор папок пока не запускают загрузку писем. Будущий почтовый архив будет хранить метаданные и письма в SQLite, а вложения — в файловой папке.
++
+ ## Сборка Windows EXE
+ 
+ Файл `rsrc_windows_amd64.syso` уже включён в репозиторий. Поэтому для обычной сборки Windows/amd64 достаточно:
+diff --git a/go.mod b/go.mod
+index 64fc68f..6f0a085 100644
+--- a/go.mod
++++ b/go.mod
+@@ -2,10 +2,21 @@ module GoArchivist
+ 
+ go 1.27.2
+ 
+-require github.com/gogpu/systray v0.3.0
++require (
++	github.com/gogpu/systray v0.3.0
++	modernc.org/sqlite v1.61.0
++)
+ 
+ require (
++	github.com/dustin/go-humanize v1.1.0 // indirect
+ 	github.com/go-webgpu/goffi v0.6.3 // indirect
+ 	github.com/godbus/dbus/v5 v5.2.2 // indirect
+-	golang.org/x/sys v0.47.0 // indirect
++	github.com/google/uuid v1.6.0 // indirect
++	github.com/mattn/go-isatty v0.0.24 // indirect
++	github.com/ncruces/go-strftime v1.1.0 // indirect
++	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
++	golang.org/x/sys v0.49.0 // indirect
++	modernc.org/libc v1.79.0 // indirect
++	modernc.org/mathutil v1.7.1 // indirect
++	modernc.org/memory v1.12.1 // indirect
+ )
+diff --git a/go.sum b/go.sum
+index 1d7ca44..d84605d 100644
+--- a/go.sum
++++ b/go.sum
+@@ -1,8 +1,56 @@
++github.com/dustin/go-humanize v1.1.0 h1:dbKTrvD0klcbBV/h4AWJdMuZogJACoMlvWIWZ5b2xWg=
++github.com/dustin/go-humanize v1.1.0/go.mod h1:hc1CvRkJMsgxqjmjMQF3QNRAZBwY8AXBAzKYoSX9sFI=
+ github.com/go-webgpu/goffi v0.6.3 h1:p4gKGikHBAQ/8iUiew9MV4C5M1ZGIsk8QGFGuJjMj+A=
+ github.com/go-webgpu/goffi v0.6.3/go.mod h1:wfoxNsJkU+5RFbV1kNN1kunhc1lFHuJKK3zpgx08/uM=
+ github.com/godbus/dbus/v5 v5.2.2 h1:TUR3TgtSVDmjiXOgAAyaZbYmIeP3DPkld3jgKGV8mXQ=
+ github.com/godbus/dbus/v5 v5.2.2/go.mod h1:3AAv2+hPq5rdnr5txxxRwiGjPXamgoIHgz9FPBfOp3c=
+ github.com/gogpu/systray v0.3.0 h1:1kbYI/XujAvbwaVs/4o/UAjSNW8DMgsGoBeACKTH+S0=
+ github.com/gogpu/systray v0.3.0/go.mod h1:aoA1tAjYSKH/iVc761t7IVDOaTRYmOwglbcbpcLF1v0=
+-golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=
+-golang.org/x/sys v0.47.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
++github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50 h1:PlNWJRxu5APSV0pWqfIsZ0qt9OOGHSWfZQ4zvx+WgWs=
++github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50/go.mod h1:yUo1AMMpsPIDFGuwDK8nLcf8+vvAd5l2O6JDZ6hpwrM=
++github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
++github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
++github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=
++github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
++github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=
++github.com/mattn/go-isatty v0.0.24/go.mod h1:nMCL3Zebbrt45jsMDgnfIwz6ydEQApk5oEI3HqDio6A=
++github.com/ncruces/go-strftime v1.1.0 h1:vtPmPWMkb539RGV9WpWT9EwJGvrOCKvMNI4obWL47Hk=
++github.com/ncruces/go-strftime v1.1.0/go.mod h1:yVaq7iwCN09vHRrKBrrflXT0M9tTMG2KmZ9Fj7xeG/g=
++github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
++github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
++golang.org/x/mod v0.42.0 h1:ICeL3t2L30ljSPHHxDnR4fqVcBt/zR2zJAb9juavmQg=
++golang.org/x/mod v0.42.0/go.mod h1:u5fzIrRInkL8MaO1cbRkUHT64v303YIT5KEqpNr7jRs=
++golang.org/x/sync v0.24.0 h1:iqiDrGoDgyuvAKrhLQthUEzU/R378N78gXbBjxed7oA=
++golang.org/x/sync v0.24.0/go.mod h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0=
++golang.org/x/sys v0.49.0 h1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=
++golang.org/x/sys v0.49.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
++golang.org/x/tools v0.52.0 h1:ryxg4U63oaUYk7uOLTF37n43f4qgtGvqV4Ioit1BaEs=
++golang.org/x/tools v0.52.0/go.mod h1:ItcP5UNaVGG+Yc4eIYmaFLNJ4soEopkx5Y2d4lcEurs=
++modernc.org/cc/v4 v4.30.3 h1:aDq8gIX1X7+VFgO/JYYji6pLWL2H4tv3g8WatT3KCys=
++modernc.org/cc/v4 v4.30.3/go.mod h1:OnovgIhbbMXMu1aISnJ0wvVD1KnW+cAUJkIrAWh+kVI=
++modernc.org/ccgo/v4 v4.37.0 h1:BAuJCUtIHIxFIYaFhqXIw5YaoMBlNCUlFovejHfMip4=
++modernc.org/ccgo/v4 v4.37.0/go.mod h1:/8627VhwWtAbqUXmPORxFQU5SgLrAx2jl9seLw9GBhY=
++modernc.org/fileutil v1.4.0 h1:j6ZzNTftVS054gi281TyLjHPp6CPHr2KCxEXjEbD6SM=
++modernc.org/fileutil v1.4.0/go.mod h1:EqdKFDxiByqxLk8ozOxObDSfcVOv/54xDs/DUHdvCUU=
++modernc.org/gc/v2 v2.6.5 h1:nyqdV8q46KvTpZlsw66kWqwXRHdjIlJOhG6kxiV/9xI=
++modernc.org/gc/v2 v2.6.5/go.mod h1:YgIahr1ypgfe7chRuJi2gD7DBQiKSLMPgBQe9oIiito=
++modernc.org/gc/v3 v3.2.0 h1:/Y3LGDMQaoYf55PebP1qsZ5FDGgAZyG1RYKEHeQzh1o=
++modernc.org/gc/v3 v3.2.0/go.mod h1:HFK/6AGESC7Ex+EZJhJ2Gni6cTaYpSMmU/cT9RmlfYY=
++modernc.org/goabi0 v0.2.0 h1:HvEowk7LxcPd0eq6mVOAEMai46V+i7Jrj13t4AzuNks=
++modernc.org/goabi0 v0.2.0/go.mod h1:CEFRnnJhKvWT1c1JTI3Avm+tgOWbkOu5oPA8eH8LnMI=
++modernc.org/libc v1.79.0 h1:9Dvvv++bAMSkSuBzuOFAatbTV5OIoq6Y6FohmD3e7q8=
++modernc.org/libc v1.79.0/go.mod h1:uT3kR61NsbeKJSLqq83GJwSnZMVLlSjyAz4DfTaBy1M=
++modernc.org/mathutil v1.7.1 h1:GCZVGXdaN8gTqB1Mf/usp1Y/hSqgI2vAGGP4jZMCxOU=
++modernc.org/mathutil v1.7.1/go.mod h1:4p5IwJITfppl0G4sUEDtCr4DthTaT47/N3aT6MhfgJg=
++modernc.org/memory v1.12.1 h1:nFMiWrpStgZczNl6XI9GnIk/rWhYIyHGUaR04pGbp9g=
++modernc.org/memory v1.12.1/go.mod h1:/JP4VbVC+K5sU2wZi9bHoq2MAkCnrt2r98UGeSK7Mjw=
++modernc.org/opt v0.2.0 h1:tGyef5ApycA7FSEOMraay9SaTk5zmbx7Tu+cJs4QKZg=
++modernc.org/opt v0.2.0/go.mod h1:03fq9lsNfvkYSfxrfUhZCWPk1lm4cq4N+Bh//bEtgns=
++modernc.org/sortutil v1.2.1 h1:+xyoGf15mM3NMlPDnFqrteY07klSFxLElE2PVuWIJ7w=
++modernc.org/sortutil v1.2.1/go.mod h1:7ZI3a3REbai7gzCLcotuw9AC4VZVpYMjDzETGsSMqJE=
++modernc.org/sqlite v1.61.0 h1:sQi63oLQ9uquAUA4CzOisH35Q3pEszkPBuHM0tFL8CY=
++modernc.org/sqlite v1.61.0/go.mod h1:f4gr5tbpx2umklaT/QVtbi/50hNdM+4ng+2zMo8KXJ0=
++modernc.org/strutil v1.2.1 h1:UneZBkQA+DX2Rp35KcM69cSsNES9ly8mQWD71HKlOA0=
++modernc.org/strutil v1.2.1/go.mod h1:EHkiggD70koQxjVdSBM3JKM7k6L0FbGE5eymy9i3B9A=
++modernc.org/token v1.1.0 h1:Xl7Ap9dKaEs5kLoOQeQmPWevfnk/DM5qcLcYlA8ys6Y=
++modernc.org/token v1.1.0/go.mod h1:UGzOrNV1mAFSEB63lOFHIpNRUVMvYTc6yu1SMY/XTDM=
+diff --git a/internal/config/config.go b/internal/config/config.go
+index 66b75bf..e882398 100644
+--- a/internal/config/config.go
++++ b/internal/config/config.go
+@@ -37,7 +37,6 @@ type IMAPConfig struct {
+ 	Port                int    `json:"port"`
+ 	Username            string `json:"username"`
+ 	Password            string `json:"password"`
+-	Mailbox             string `json:"mailbox"`
+ 	PollIntervalMinutes int    `json:"poll_interval_minutes"`
+ }
+ 
+@@ -52,7 +51,6 @@ func Default() Config {
+ 		},
+ 		IMAP: IMAPConfig{
+ 			Port:                993,
+-			Mailbox:             "INBOX",
+ 			PollIntervalMinutes: 5,
+ 		},
+ 		Archive: ArchiveConfig{
+@@ -148,9 +146,6 @@ func applyDefaults(cfg *Config) {
+ 	if cfg.IMAP.Port == 0 {
+ 		cfg.IMAP.Port = defaults.IMAP.Port
+ 	}
+-	if cfg.IMAP.Mailbox == "" {
+-		cfg.IMAP.Mailbox = defaults.IMAP.Mailbox
+-	}
+ 	if cfg.IMAP.PollIntervalMinutes <= 0 {
+ 		cfg.IMAP.PollIntervalMinutes = defaults.IMAP.PollIntervalMinutes
+ 	}
+diff --git a/internal/mail/modified_utf7.go b/internal/mail/modified_utf7.go
+new file mode 100644
+index 0000000..c108970
+--- /dev/null
++++ b/internal/mail/modified_utf7.go
+@@ -0,0 +1,63 @@
++package mail
++
++import (
++	"encoding/base64"
++	"encoding/binary"
++	"strings"
++	"unicode/utf16"
++)
++
++// DecodeModifiedUTF7 decodes an IMAP mailbox name from Modified UTF-7.
++// Malformed encoded sections are preserved verbatim so the server-provided
++// name can still be shown and used as a mailbox identifier.
++func DecodeModifiedUTF7(value string) string {
++	var decoded strings.Builder
++	for i := 0; i < len(value); {
++		if value[i] != '&' {
++			decoded.WriteByte(value[i])
++			i++
++			continue
++		}
++
++		shiftLength := strings.IndexByte(value[i:], '-')
++		if shiftLength < 0 {
++			decoded.WriteByte(value[i])
++			i++
++			continue
++		}
++
++		end := i + shiftLength
++		if end == i+1 {
++			decoded.WriteByte('&')
++			i = end + 1
++			continue
++		}
++
++		encoded := strings.ReplaceAll(value[i+1:end], ",", "/")
++		if remainder := len(encoded) % 4; remainder != 0 {
++			encoded += strings.Repeat("=", 4-remainder)
++		}
++		bytes, err := base64.StdEncoding.DecodeString(encoded)
++		if err != nil || len(bytes)%2 != 0 {
++			decoded.WriteString(value[i : end+1])
++			i = end + 1
++			continue
++		}
++
++		units := make([]uint16, len(bytes)/2)
++		for j := range units {
++			units[j] = binary.BigEndian.Uint16(bytes[j*2 : j*2+2])
++		}
++		decoded.WriteString(string(utf16.Decode(units)))
++		i = end + 1
++	}
++	return decoded.String()
++}
++
++// DisplayMailboxName converts the protocol form to a readable label.
++func DisplayMailboxName(name string) string {
++	if strings.EqualFold(name, "INBOX") {
++		return "Входящие"
++	}
++	return DecodeModifiedUTF7(name)
++}
+diff --git a/internal/mail/modified_utf7_test.go b/internal/mail/modified_utf7_test.go
+new file mode 100644
+index 0000000..24c7ca9
+--- /dev/null
++++ b/internal/mail/modified_utf7_test.go
+@@ -0,0 +1,30 @@
++package mail
++
++import "testing"
++
++func TestDecodeModifiedUTF7(t *testing.T) {
++	tests := []struct {
++		name string
++		want string
++	}{
++		{name: "INBOX", want: "INBOX"},
++		{name: "&-", want: "&"},
++		{name: "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-", want: "Отправленные"},
++		{name: "Archive/&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-", want: "Archive/Отправленные"},
++		{name: "Malformed &BB4EQgQ-", want: "Malformed &BB4EQgQ-"},
++	}
++
++	for _, test := range tests {
++		t.Run(test.name, func(t *testing.T) {
++			if got := DecodeModifiedUTF7(test.name); got != test.want {
++				t.Fatalf("DecodeModifiedUTF7(%q) = %q, want %q", test.name, got, test.want)
++			}
++		})
++	}
++}
++
++func TestDisplayMailboxName(t *testing.T) {
++	if got := DisplayMailboxName("INBOX"); got != "Входящие" {
++		t.Fatalf("DisplayMailboxName(INBOX) = %q, want Входящие", got)
++	}
++}
+diff --git a/internal/storage/database.go b/internal/storage/database.go
+index 82be054..4a3defa 100644
+--- a/internal/storage/database.go
++++ b/internal/storage/database.go
+@@ -1 +1,60 @@
+ package storage
++
++import (
++	"database/sql"
++	"errors"
++	"fmt"
++	"os"
++	"path/filepath"
++
++	_ "modernc.org/sqlite"
++)
++
++// Open returns a configured SQLite database and creates the initial schema.
++// The pure-Go modernc driver keeps Windows builds independent of CGO.
++func Open(path string) (*sql.DB, error) {
++	if path == "" {
++		return nil, errors.New("путь к базе данных не задан")
++	}
++	if path != ":memory:" {
++		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
++			return nil, fmt.Errorf("не удалось создать папку базы данных: %w", err)
++		}
++	}
++
++	db, err := sql.Open("sqlite", path)
++	if err != nil {
++		return nil, fmt.Errorf("не удалось открыть SQLite: %w", err)
++	}
++	db.SetMaxOpenConns(1)
++	db.SetMaxIdleConns(1)
++
++	if err := db.Ping(); err != nil {
++		_ = db.Close()
++		return nil, fmt.Errorf("не удалось подключиться к SQLite: %w", err)
++	}
++
++	if _, err := db.Exec(`
++		PRAGMA foreign_keys = ON;
++		PRAGMA busy_timeout = 5000;
++		CREATE TABLE IF NOT EXISTS mailboxes (
++			id INTEGER PRIMARY KEY,
++			imap_name TEXT NOT NULL UNIQUE,
++			display_name TEXT NOT NULL,
++			is_watched INTEGER NOT NULL DEFAULT 0 CHECK (is_watched IN (0, 1)),
++			is_available INTEGER NOT NULL DEFAULT 1 CHECK (is_available IN (0, 1)),
++			discovered_at TEXT NOT NULL,
++			last_seen_at TEXT NOT NULL,
++			uid_validity INTEGER,
++			last_uid INTEGER,
++			last_synced_at TEXT
++		);
++		CREATE INDEX IF NOT EXISTS idx_mailboxes_watched_available
++			ON mailboxes(is_watched, is_available);
++	`); err != nil {
++		_ = db.Close()
++		return nil, fmt.Errorf("не удалось создать схему SQLite: %w", err)
++	}
++
++	return db, nil
++}
+diff --git a/internal/storage/mailbox.go b/internal/storage/mailbox.go
+index 82be054..b21fcd6 100644
+--- a/internal/storage/mailbox.go
++++ b/internal/storage/mailbox.go
+@@ -1 +1,156 @@
+ package storage
++
++import (
++	"context"
++	"database/sql"
++	"errors"
++	"fmt"
++	"strings"
++	"time"
++
++	"GoArchivist/internal/mail"
++)
++
++// Mailbox stores both the server's protocol name and a human-readable label.
++// Name must remain unchanged for future IMAP commands.
++type Mailbox struct {
++	Name        string
++	DisplayName string
++	Watched     bool
++	Available   bool
++}
++
++// RefreshMailboxes refreshes the discovered mailbox catalog. Existing watch
++// choices and future sync checkpoints are preserved; new folders start off,
++// except INBOX, which is selected by default.
++func RefreshMailboxes(ctx context.Context, db *sql.DB, names []string) error {
++	if db == nil {
++		return errors.New("база данных не открыта")
++	}
++
++	tx, err := db.BeginTx(ctx, nil)
++	if err != nil {
++		return fmt.Errorf("не удалось начать обновление списка папок: %w", err)
++	}
++	defer tx.Rollback()
++
++	if _, err := tx.ExecContext(ctx, `UPDATE mailboxes SET is_available = 0`); err != nil {
++		return fmt.Errorf("не удалось отметить старые папки: %w", err)
++	}
++
++	now := time.Now().UTC().Format(time.RFC3339Nano)
++	for _, name := range names {
++		if name == "" {
++			continue
++		}
++		defaultWatched := 0
++		if strings.EqualFold(name, "INBOX") {
++			defaultWatched = 1
++		}
++		_, err := tx.ExecContext(ctx, `
++			INSERT INTO mailboxes (
++				imap_name, display_name, is_watched, is_available, discovered_at, last_seen_at
++			) VALUES (?, ?, ?, 1, ?, ?)
++			ON CONFLICT(imap_name) DO UPDATE SET
++				display_name = excluded.display_name,
++				is_available = 1,
++				last_seen_at = excluded.last_seen_at
++		`, name, mail.DisplayMailboxName(name), defaultWatched, now, now)
++		if err != nil {
++			return fmt.Errorf("не удалось сохранить папку IMAP %q: %w", name, err)
++		}
++	}
++
++	if err := tx.Commit(); err != nil {
++		return fmt.Errorf("не удалось завершить обновление папок: %w", err)
++	}
++	return nil
++}
++
++// ListMailboxes returns currently available folders, with INBOX first.
++func ListMailboxes(ctx context.Context, db *sql.DB) ([]Mailbox, error) {
++	if db == nil {
++		return nil, errors.New("база данных не открыта")
++	}
++	rows, err := db.QueryContext(ctx, `
++		SELECT imap_name, display_name, is_watched, is_available
++		FROM mailboxes
++		WHERE is_available = 1
++		ORDER BY CASE WHEN upper(imap_name) = 'INBOX' THEN 0 ELSE 1 END,
++		         display_name COLLATE NOCASE,
++		         imap_name
++	`)
++	if err != nil {
++		return nil, fmt.Errorf("не удалось загрузить список папок: %w", err)
++	}
++	defer rows.Close()
++
++	var mailboxes []Mailbox
++	for rows.Next() {
++		var mailbox Mailbox
++		var watched, available int
++		if err := rows.Scan(&mailbox.Name, &mailbox.DisplayName, &watched, &available); err != nil {
++			return nil, fmt.Errorf("не удалось прочитать папку из базы данных: %w", err)
++		}
++		mailbox.Watched = watched != 0
++		mailbox.Available = available != 0
++		mailboxes = append(mailboxes, mailbox)
++	}
++	if err := rows.Err(); err != nil {
++		return nil, fmt.Errorf("ошибка чтения списка папок: %w", err)
++	}
++	return mailboxes, nil
++}
++
++// SaveWatchedMailboxes atomically stores the user's selection. Names not in
++// the currently discovered catalog are rejected instead of silently saved.
++func SaveWatchedMailboxes(ctx context.Context, db *sql.DB, names []string) error {
++	if db == nil {
++		return errors.New("база данных не открыта")
++	}
++
++	unique := make(map[string]struct{}, len(names))
++	for _, name := range names {
++		if name == "" {
++			return errors.New("получено пустое имя папки")
++		}
++		unique[name] = struct{}{}
++	}
++
++	tx, err := db.BeginTx(ctx, nil)
++	if err != nil {
++		return fmt.Errorf("не удалось начать сохранение выбора папок: %w", err)
++	}
++	defer tx.Rollback()
++
++	for name := range unique {
++		var available int
++		if err := tx.QueryRowContext(ctx,
++			`SELECT is_available FROM mailboxes WHERE imap_name = ?`, name,
++		).Scan(&available); err != nil {
++			if errors.Is(err, sql.ErrNoRows) {
++				return fmt.Errorf("неизвестная папка IMAP: %q", name)
++			}
++			return fmt.Errorf("не удалось проверить папку %q: %w", name, err)
++		}
++		if available == 0 {
++			return fmt.Errorf("папка %q больше не доступна на сервере", name)
++		}
++	}
++
++	if _, err := tx.ExecContext(ctx, `UPDATE mailboxes SET is_watched = 0 WHERE is_available = 1`); err != nil {
++		return fmt.Errorf("не удалось сбросить выбор папок: %w", err)
++	}
++	for name := range unique {
++		if _, err := tx.ExecContext(ctx,
++			`UPDATE mailboxes SET is_watched = 1 WHERE imap_name = ? AND is_available = 1`, name,
++		); err != nil {
++			return fmt.Errorf("не удалось включить отслеживание папки %q: %w", name, err)
++		}
++	}
++
++	if err := tx.Commit(); err != nil {
++		return fmt.Errorf("не удалось сохранить выбор папок: %w", err)
++	}
++	return nil
++}
+diff --git a/internal/storage/mailbox_test.go b/internal/storage/mailbox_test.go
+new file mode 100644
+index 0000000..bc97298
+--- /dev/null
++++ b/internal/storage/mailbox_test.go
+@@ -0,0 +1,76 @@
++package storage
++
++import (
++	"context"
++	"testing"
++)
++
++func TestMailboxCatalogAndSelection(t *testing.T) {
++	db, err := Open(":memory:")
++	if err != nil {
++		t.Fatalf("open in-memory database: %v", err)
++	}
++	defer db.Close()
++
++	ctx := context.Background()
++	initialNames := []string{"Archive", "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-", "INBOX"}
++	if err := RefreshMailboxes(ctx, db, initialNames); err != nil {
++		t.Fatalf("refresh mailbox catalog: %v", err)
++	}
++
++	mailboxes, err := ListMailboxes(ctx, db)
++	if err != nil {
++		t.Fatalf("list mailboxes: %v", err)
++	}
++	if len(mailboxes) != 3 {
++		t.Fatalf("got %d mailboxes, want 3", len(mailboxes))
++	}
++	if mailboxes[0].Name != "INBOX" || mailboxes[0].DisplayName != "Входящие" || !mailboxes[0].Watched {
++		t.Fatalf("INBOX default selection incorrect: %+v", mailboxes[0])
++	}
++	var sentFolder Mailbox
++	for _, mailbox := range mailboxes {
++		if mailbox.Name == "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-" {
++			sentFolder = mailbox
++			break
++		}
++	}
++	if sentFolder.Name == "" || sentFolder.DisplayName != "Отправленные" || sentFolder.Watched {
++		t.Fatalf("modified UTF-7 folder handling incorrect: %+v", sentFolder)
++	}
++
++	if err := SaveWatchedMailboxes(ctx, db, []string{"INBOX", "Archive"}); err != nil {
++		t.Fatalf("save mailbox selection: %v", err)
++	}
++
++	// A refreshed discovery must preserve prior choices and leave new folders off.
++	if err := RefreshMailboxes(ctx, db, []string{"INBOX", "Archive", "Drafts"}); err != nil {
++		t.Fatalf("refresh mailbox catalog again: %v", err)
++	}
++	mailboxes, err = ListMailboxes(ctx, db)
++	if err != nil {
++		t.Fatalf("list refreshed mailboxes: %v", err)
++	}
++	watched := map[string]bool{}
++	for _, mailbox := range mailboxes {
++		watched[mailbox.Name] = mailbox.Watched
++	}
++	if !watched["INBOX"] || !watched["Archive"] || watched["Drafts"] {
++		t.Fatalf("unexpected watched state after refresh: %#v", watched)
++	}
++	if err := SaveWatchedMailboxes(ctx, db, []string{"missing"}); err == nil {
++		t.Fatal("saving an unknown mailbox should fail")
++	}
++
++	mailboxes, err = ListMailboxes(ctx, db)
++	if err != nil {
++		t.Fatalf("list mailboxes after rejected selection: %v", err)
++	}
++	watched = map[string]bool{}
++	for _, mailbox := range mailboxes {
++		watched[mailbox.Name] = mailbox.Watched
++	}
++	if !watched["INBOX"] || !watched["Archive"] || watched["Drafts"] {
++		t.Fatalf("failed save changed the selection: %#v", watched)
++	}
++}
+diff --git a/internal/storage/persistence_test.go b/internal/storage/persistence_test.go
+new file mode 100644
+index 0000000..ad10cf0
+--- /dev/null
++++ b/internal/storage/persistence_test.go
+@@ -0,0 +1,46 @@
++package storage
++
++import (
++	"context"
++	"path/filepath"
++	"testing"
++)
++
++func TestWatchedSelectionPersistsAcrossDatabaseReopen(t *testing.T) {
++	path := filepath.Join(t.TempDir(), "goarchivist.db")
++	ctx := context.Background()
++
++	db, err := Open(path)
++	if err != nil {
++		t.Fatalf("open database: %v", err)
++	}
++	if err := RefreshMailboxes(ctx, db, []string{"INBOX", "Archive"}); err != nil {
++		db.Close()
++		t.Fatalf("refresh mailboxes: %v", err)
++	}
++	if err := SaveWatchedMailboxes(ctx, db, []string{"Archive"}); err != nil {
++		db.Close()
++		t.Fatalf("save mailbox selection: %v", err)
++	}
++	if err := db.Close(); err != nil {
++		t.Fatalf("close database: %v", err)
++	}
++
++	db, err = Open(path)
++	if err != nil {
++		t.Fatalf("reopen database: %v", err)
++	}
++	defer db.Close()
++
++	mailboxes, err := ListMailboxes(ctx, db)
++	if err != nil {
++		t.Fatalf("list mailboxes after reopening: %v", err)
++	}
++	watched := map[string]bool{}
++	for _, mailbox := range mailboxes {
++		watched[mailbox.Name] = mailbox.Watched
++	}
++	if watched["INBOX"] || !watched["Archive"] {
++		t.Fatalf("selection was not persisted: %#v", watched)
++	}
++}
+diff --git a/internal/web/handlers.go b/internal/web/handlers.go
+index 3a279aa..55e6839 100644
+--- a/internal/web/handlers.go
++++ b/internal/web/handlers.go
+@@ -1,20 +1,44 @@
+ package web
+ 
+ import (
++	"context"
+ 	"encoding/json"
+ 	"fmt"
+ 	"html/template"
+ 	"net/http"
+ 	"os"
+ 	"regexp"
+-	"time"
++	"strconv"
++	"strings"
+ 
+ 	"GoArchivist/internal/archive"
+ 	"GoArchivist/internal/config"
++	mailclient "GoArchivist/internal/mail"
++	"GoArchivist/internal/storage"
+ )
+ 
+ var pinTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3])[0-5][0-9]$`)
+ 
++type settingsPageData struct {
++	Section          string
++	Logs             string
++	ArchiveDirectory string
++	Message          string
++	MessageType      string
++
++	IMAPServer        string
++	IMAPPort          int
++	IMAPUsername      string
++	IMAPPollInterval  int
++	IMAPHasPassword   bool
++	IMAPConfigured    bool
++	IMAPMessage       string
++	IMAPMessageType   string
++	Mailboxes         []storage.Mailbox
++	FolderMessage     string
++	FolderMessageType string
++}
++
+ func homeHandler(page *template.Template) http.HandlerFunc {
+ 	return func(w http.ResponseWriter, r *http.Request) {
+ 		if r.URL.Path != "/" {
+@@ -48,7 +72,7 @@ func settingsHandler(page *template.Template, logFilePath string) http.HandlerFu
+ 
+ 		w.Header().Set("Cache-Control", "no-store")
+ 		if r.Method == http.MethodPost {
+-			if err := r.ParseMultipartForm(1 << 20); err != nil {
++			if err := parseFormRequest(r); err != nil {
+ 				writePINError(w, r, page, "Не удалось прочитать введённый код.", http.StatusBadRequest)
+ 				return
+ 			}
+@@ -74,6 +98,177 @@ func settingsHandler(page *template.Template, logFilePath string) http.HandlerFu
+ 	}
+ }
+ 
++// parseFormRequest accepts both the browser's default URL-encoded forms and
++// multipart forms submitted by the PIN dialog's JavaScript FormData request.
++func parseFormRequest(r *http.Request) error {
++	contentType := strings.ToLower(r.Header.Get("Content-Type"))
++	if strings.HasPrefix(contentType, "multipart/form-data") {
++		return r.ParseMultipartForm(1 << 20)
++	}
++	return r.ParseForm()
++}
++
++func imapSettingsHandler(page *template.Template) http.HandlerFunc {
++	return func(w http.ResponseWriter, r *http.Request) {
++		if r.Method != http.MethodPost {
++			w.Header().Set("Allow", "POST")
++			renderErrorPage(w, page, "405.html", http.StatusMethodNotAllowed)
++			return
++		}
++		w.Header().Set("Cache-Control", "no-store")
++
++		cfg, paths, err := config.Load()
++		if err != nil {
++			http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
++			return
++		}
++		if err := r.ParseForm(); err != nil {
++			renderSettingsPage(w, page, "Не удалось прочитать параметры подключения.", "error")
++			return
++		}
++
++		server := strings.TrimSpace(r.FormValue("imap_server"))
++		username := strings.TrimSpace(r.FormValue("imap_username"))
++		password := r.FormValue("imap_password")
++		if password == "" {
++			password = cfg.IMAP.Password
++		}
++
++		port, portErr := strconv.Atoi(r.FormValue("imap_port"))
++		pollInterval, intervalErr := strconv.Atoi(r.FormValue("imap_poll_interval"))
++		showResult := func(current config.Config, message, messageType string) {
++			data := settingsData(current)
++			data.IMAPServer = server
++			data.IMAPUsername = username
++			if portErr == nil {
++				data.IMAPPort = port
++			}
++			if intervalErr == nil {
++				data.IMAPPollInterval = pollInterval
++			}
++			data.IMAPMessage = message
++			data.IMAPMessageType = messageType
++			data.Mailboxes, err = loadMailboxCatalog(paths.Database)
++			if err != nil {
++				data.FolderMessage = "Не удалось загрузить сохранённый список папок: " + err.Error()
++				data.FolderMessageType = "error"
++			}
++			renderSettingsData(w, page, data)
++		}
++
++		if server == "" || username == "" || password == "" || portErr != nil || port < 1 || port > 65535 {
++			showResult(cfg, "Заполните IMAP-сервер, порт, имя пользователя и пароль. Порт должен быть от 1 до 65535.", "error")
++			return
++		}
++		if intervalErr != nil || pollInterval < 1 || pollInterval > 1440 {
++			showResult(cfg, "Интервал проверки должен быть от 1 до 1440 минут.", "error")
++			return
++		}
++
++		mailboxes, err := mailclient.CheckIMAPConnection(server, port, username, password)
++		if err != nil {
++			message := fmt.Sprintf("Не удалось подключиться: %v. Настройки не сохранены.", err)
++			if r.FormValue("imap_password") != "" {
++				message += " Новый пароль не сохранён — введите его повторно."
++			}
++			showResult(cfg, message, "error")
++			return
++		}
++		if len(mailboxes) == 0 {
++			message := "Соединение установлено, но сервер не вернул папки. Настройки не сохранены."
++			if r.FormValue("imap_password") != "" {
++				message += " Новый пароль не сохранён — введите его повторно."
++			}
++			showResult(cfg, message, "error")
++			return
++		}
++
++		previousConfig := cfg
++		cfg.IMAP.Server = server
++		cfg.IMAP.Port = port
++		cfg.IMAP.Username = username
++		cfg.IMAP.Password = password
++		cfg.IMAP.PollIntervalMinutes = pollInterval
++		if err := config.Save(paths.ConfigFile, cfg); err != nil {
++			message := fmt.Sprintf("Соединение проверено, но настройки не удалось сохранить: %v", err)
++			if r.FormValue("imap_password") != "" {
++				message += " Новый пароль не сохранён — введите его повторно."
++			}
++			showResult(previousConfig, message, "error")
++			return
++		}
++
++		db, err := storage.Open(paths.Database)
++		if err != nil {
++			showResult(cfg, "Соединение успешно, параметры сохранены, но не удалось обновить список папок: "+err.Error(), "error")
++			return
++		}
++		refreshErr := storage.RefreshMailboxes(r.Context(), db, mailboxes)
++		closeErr := db.Close()
++		if refreshErr != nil {
++			showResult(cfg, "Соединение успешно, параметры сохранены, но список папок не обновлён: "+refreshErr.Error(), "error")
++			return
++		}
++		if closeErr != nil {
++			showResult(cfg, "Соединение и сохранение прошли успешно; предупреждение при закрытии базы данных: "+closeErr.Error(), "error")
++			return
++		}
++
++		showResult(cfg, "Соединение успешно. Настройки сохранены. Выберите папки для отслеживания ниже.", "success")
++	}
++}
++
++func watchedMailboxesHandler(page *template.Template) http.HandlerFunc {
++	return func(w http.ResponseWriter, r *http.Request) {
++		if r.Method != http.MethodPost {
++			w.Header().Set("Allow", "POST")
++			renderErrorPage(w, page, "405.html", http.StatusMethodNotAllowed)
++			return
++		}
++		w.Header().Set("Cache-Control", "no-store")
++		if err := r.ParseForm(); err != nil {
++			renderMailboxSelectionPage(w, page, "Не удалось прочитать выбранные папки.", "error")
++			return
++		}
++
++		_, paths, err := config.Load()
++		if err != nil {
++			http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
++			return
++		}
++		db, err := storage.Open(paths.Database)
++		if err != nil {
++			renderMailboxSelectionPage(w, page, "Не удалось открыть базу данных папок: "+err.Error(), "error")
++			return
++		}
++		saveErr := storage.SaveWatchedMailboxes(r.Context(), db, r.Form["watched_mailbox"])
++		closeErr := db.Close()
++		if saveErr != nil {
++			renderMailboxSelectionPage(w, page, saveErr.Error(), "error")
++			return
++		}
++		if closeErr != nil {
++			renderMailboxSelectionPage(w, page, "Выбор сохранён, но базу данных не удалось закрыть: "+closeErr.Error(), "error")
++			return
++		}
++
++		if len(r.Form["watched_mailbox"]) == 0 {
++			renderMailboxSelectionPage(w, page, "Выбор сохранён. Сейчас ни одна папка не отслеживается.", "success")
++			return
++		}
++		renderMailboxSelectionPage(w, page, fmt.Sprintf("Выбор сохранён. Отслеживается папок: %d.", len(r.Form["watched_mailbox"])), "success")
++	}
++}
++
++func loadMailboxCatalog(databasePath string) ([]storage.Mailbox, error) {
++	db, err := storage.Open(databasePath)
++	if err != nil {
++		return nil, err
++	}
++	defer db.Close()
++	return storage.ListMailboxes(context.Background(), db)
++}
++
+ func archiveDirectoryHandler(page *template.Template) http.HandlerFunc {
+ 	return func(w http.ResponseWriter, r *http.Request) {
+ 		if r.Method != http.MethodPost {
+@@ -165,32 +360,67 @@ func logsHandler(page *template.Template, logFilePath string) http.HandlerFunc {
+ 	}
+ }
+ 
++func settingsData(cfg config.Config) settingsPageData {
++	return settingsPageData{
++		Section:          "general",
++		ArchiveDirectory: cfg.Archive.Directory,
++		IMAPServer:       cfg.IMAP.Server,
++		IMAPPort:         cfg.IMAP.Port,
++		IMAPUsername:     cfg.IMAP.Username,
++		IMAPPollInterval: cfg.IMAP.PollIntervalMinutes,
++		IMAPHasPassword:  cfg.IMAP.Password != "",
++		IMAPConfigured:   cfg.IMAP.Server != "" && cfg.IMAP.Username != "" && cfg.IMAP.Password != "",
++	}
++}
++
+ func renderSettingsPage(
+ 	w http.ResponseWriter,
+ 	page *template.Template,
+ 	message string,
+ 	messageType string,
+ ) {
+-	cfg, _, err := config.Load()
++	cfg, paths, err := config.Load()
+ 	if err != nil {
+ 		http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
+ 		return
+ 	}
+ 
+-	data := struct {
+-		Section          string
+-		Logs             string
+-		ArchiveDirectory string
+-		Message          string
+-		MessageType      string
+-	}{
+-		Section:          "general",
+-		ArchiveDirectory: cfg.Archive.Directory,
+-		Message:          message,
+-		MessageType:      messageType,
++	data := settingsData(cfg)
++	data.Message = message
++	data.MessageType = messageType
++	data.Mailboxes, err = loadMailboxCatalog(paths.Database)
++	if err != nil {
++		data.FolderMessage = "Не удалось загрузить список папок: " + err.Error()
++		data.FolderMessageType = "error"
++	}
++	renderSettingsData(w, page, data)
++}
++
++func renderMailboxSelectionPage(
++	w http.ResponseWriter,
++	page *template.Template,
++	message string,
++	messageType string,
++) {
++	cfg, paths, err := config.Load()
++	if err != nil {
++		http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
++		return
+ 	}
++	data := settingsData(cfg)
++	data.FolderMessage = message
++	data.FolderMessageType = messageType
++	data.Mailboxes, err = loadMailboxCatalog(paths.Database)
++	if err != nil {
++		data.FolderMessage = "Не удалось загрузить список папок: " + err.Error()
++		data.FolderMessageType = "error"
++	}
++	renderSettingsData(w, page, data)
++}
+ 
++func renderSettingsData(w http.ResponseWriter, page *template.Template, data settingsPageData) {
+ 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
++	w.Header().Set("Cache-Control", "no-store")
+ 	if err := page.ExecuteTemplate(w, "settings.html", data); err != nil {
+ 		http.Error(w, "Не удалось отобразить страницу настроек", http.StatusInternalServerError)
+ 	}
+@@ -254,6 +484,3 @@ func renderErrorPage(w http.ResponseWriter, page *template.Template, name string
+ 		http.Error(w, http.StatusText(status), status)
+ 	}
+ }
+-
+-// Оставлено на случай использования в других файлах пакета.
+-var _ = time.Local
+diff --git a/internal/web/handlers_test.go b/internal/web/handlers_test.go
+new file mode 100644
+index 0000000..649736b
+--- /dev/null
++++ b/internal/web/handlers_test.go
+@@ -0,0 +1,60 @@
++package web
++
++import (
++	"html/template"
++	"net/http/httptest"
++	"net/url"
++	"strings"
++	"testing"
++
++	"GoArchivist/internal/storage"
++)
++
++func TestSettingsTemplatesRenderIMAPForm(t *testing.T) {
++	page, err := template.ParseFS(assets, "templates/*.html")
++	if err != nil {
++		t.Fatalf("parse templates: %v", err)
++	}
++
++	response := httptest.NewRecorder()
++	renderSettingsData(response, page, settingsPageData{
++		Section:          "general",
++		IMAPPort:         993,
++		IMAPPollInterval: 5,
++		Mailboxes: []storage.Mailbox{{
++			Name:        "INBOX",
++			DisplayName: "Входящие",
++			Watched:     true,
++		}},
++	})
++
++	body := response.Body.String()
++	for _, expected := range []string{
++		`action="/settings/imap"`,
++		`name="imap_server"`,
++		`name="imap_port"`,
++		`name="imap_username"`,
++		`name="imap_password"`,
++		"Проверить соединение и сохранить",
++		`action="/settings/mailboxes"`,
++		`value="INBOX" checked`,
++		"Входящие",
++	} {
++		if !strings.Contains(body, expected) {
++			t.Errorf("rendered settings page missing %q", expected)
++		}
++	}
++}
++
++func TestPINFormRequestAcceptsURLFormEncoding(t *testing.T) {
++	values := url.Values{"pin": {"1234"}, "client_time": {"1234"}}
++	r := httptest.NewRequest("POST", "/settings", strings.NewReader(values.Encode()))
++	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
++
++	if err := parseFormRequest(r); err != nil {
++		t.Fatalf("parse URL-encoded form: %v", err)
++	}
++	if got := r.FormValue("pin"); got != "1234" {
++		t.Fatalf("pin = %q, want 1234", got)
++	}
++}
+diff --git a/internal/web/server.go b/internal/web/server.go
+index e97175f..8d85f16 100644
+--- a/internal/web/server.go
++++ b/internal/web/server.go
+@@ -31,6 +31,8 @@ func NewServer(address string, logFilePath string) (*Server, error) {
+ 	mux := http.NewServeMux()
+ 	mux.HandleFunc("/settings/clear-logs", clearLogsHandler(logFilePath))
+ 	mux.HandleFunc("/settings/archive-directory", archiveDirectoryHandler(page))
++	mux.HandleFunc("/settings/imap", imapSettingsHandler(page))
++	mux.HandleFunc("/settings/mailboxes", watchedMailboxesHandler(page))
+ 	mux.HandleFunc("/settings", settingsHandler(page, logFilePath))
+ 	mux.HandleFunc("/", homeHandler(page))
+ 	mux.Handle(
+diff --git a/internal/web/templates/settings.html b/internal/web/templates/settings.html
+index 4b3fb4b..c24a939 100644
+--- a/internal/web/templates/settings.html
++++ b/internal/web/templates/settings.html
+@@ -16,6 +16,44 @@
+ .archive-path-message { margin: 14px 0 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 6px; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+ .archive-path-message.success { color: #8de0d3; border-color: rgba(41,199,178,.22); background: rgba(41,199,178,.07); }
+ .archive-path-message.error { color: #ff9aa8; border-color: rgba(255,113,133,.22); background: rgba(255,113,133,.07); }
++.imap-settings-card { grid-column: 1 / -1; }
++.imap-status-ok { color: #8de0d3; border-color: rgba(41,199,178,.18); background: rgba(41,199,178,.07); }
++.imap-status-ok .pill-dot { background: var(--teal); }
++.imap-intro { margin: 13px 0 0; color: #899ab5; font-size: 10px; line-height: 1.6; }
++.imap-form { display: grid; gap: 13px; margin-top: 6px; }
++.imap-field-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(120px, .65fr); gap: 10px 13px; }
++.imap-field { display: grid; align-content: start; color: #bdc9dc; font-size: 10px; font-weight: 650; }
++.imap-field .archive-path-input { margin-top: 6px; }
++.imap-form .archive-path-actions { margin-top: 1px; }
++.mailbox-watch-card { grid-column: 1 / -1; }
++.mailbox-hint-badge { padding: 5px 7px; color: #8597b4; border: 1px solid var(--line); border-radius: 5px; font-size: 8px; font-weight: 750; letter-spacing: .7px; }
++.mailbox-watch-form { margin-top: 14px; }
++.mailbox-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: 370px; overflow-y: auto; padding: 1px 4px 1px 1px; }
++.mailbox-row { position: relative; display: grid; grid-template-columns: 18px 25px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 62px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: rgba(7, 15, 28, .18); cursor: pointer; transition: border-color .16s ease, background .16s ease; }
++.mailbox-row:hover { border-color: var(--line-strong); background: rgba(255,255,255,.035); }
++.mailbox-row.is-watched { border-color: rgba(41,199,178,.22); background: rgba(41,199,178,.055); }
++.mailbox-row input { position: absolute; width: 1px; height: 1px; opacity: 0; }
++.mailbox-check { display: grid; width: 16px; height: 16px; place-items: center; color: #0d2430; border: 1px solid #667894; border-radius: 4px; background: #15233a; }
++.mailbox-check svg { width: 12px; height: 12px; opacity: 0; stroke-width: 2.5; }
++.mailbox-row input:checked + .mailbox-check { border-color: var(--teal); background: var(--teal); }
++.mailbox-row input:checked + .mailbox-check svg { opacity: 1; }
++.mailbox-row input:focus-visible + .mailbox-check { outline: 2px solid #e8f4ff; outline-offset: 2px; }
++.mailbox-folder-icon { display: grid; width: 25px; height: 25px; place-items: center; color: #8ea1bf; border-radius: 6px; background: rgba(142,161,191,.1); }
++.mailbox-row.is-watched .mailbox-folder-icon { color: var(--teal); background: rgba(41,199,178,.11); }
++.mailbox-folder-icon svg { width: 14px; height: 14px; }
++.mailbox-copy { display: grid; min-width: 0; gap: 4px; }
++.mailbox-copy strong { overflow: hidden; color: #dce6f5; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
++.mailbox-copy small { color: #7e90ad; font-size: 8px; }
++.mailbox-row-state { padding: 4px 5px; color: #7586a2; border: 1px solid var(--line); border-radius: 4px; font-size: 7px; font-weight: 800; letter-spacing: .5px; }
++.mailbox-row.is-watched .mailbox-row-state { color: #7cdbce; border-color: rgba(41,199,178,.2); background: rgba(41,199,178,.07); }
++.mailbox-actions { display: flex; justify-content: flex-end; margin-top: 13px; }
++.mailbox-empty { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 15px; color: #9baac1; border: 1px dashed var(--line-strong); border-radius: 8px; background: rgba(6,14,28,.14); }
++.mailbox-empty-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; color: #8ea1bf; border-radius: 8px; background: rgba(142,161,191,.1); }
++.mailbox-empty-icon svg { width: 17px; height: 17px; }
++.mailbox-empty strong { display: block; margin-bottom: 4px; color: #d4deee; font-size: 10px; }
++.mailbox-empty p { margin: 0; font-size: 9px; line-height: 1.55; }
++@media (max-width: 680px) { .mailbox-list { grid-template-columns: 1fr; } }
++@media (max-width: 540px) { .imap-field-grid { grid-template-columns: 1fr; } .imap-form .button { width: 100%; white-space: normal; text-align: center; } }
+ </style>
+ </head>
+ <body>
+@@ -65,9 +103,44 @@
+ </section>
+ {{else}}
+ <section class="settings-grid">
+-<article class="panel settings-card">
+-<div class="panel-heading"><div><div class="panel-kicker">ПОЧТОВЫЙ ИСТОЧНИК</div><h2>Подключение IMAP</h2></div><span class="status-pill warning"><span class="pill-dot"></span> Не настроено</span></div>
+-<div class="settings-placeholder"><span class="placeholder-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg></span><div><h3>Настройка подключения ещё не реализована</h3><p>Параметры IMAP пока не редактируются через веб-интерфейс. Подключение почтового клиента находится в разработке.</p></div></div>
++<article class="panel settings-card imap-settings-card">
++<div class="panel-heading"><div><div class="panel-kicker">ПОЧТОВЫЙ ИСТОЧНИК</div><h2>Подключение IMAP</h2></div>{{if .IMAPConfigured}}<span class="status-pill imap-status-ok"><span class="pill-dot"></span> Параметры сохранены</span>{{else}}<span class="status-pill warning"><span class="pill-dot"></span> Не настроено</span>{{end}}</div>
++<p class="imap-intro">Введите реквизиты ящика. Они сохранятся в настройках только после успешной проверки защищённого TLS-соединения.</p>
++<form class="imap-form" action="/settings/imap" method="post">
++<div class="imap-field-grid">
++<label class="imap-field">IMAP-сервер<input class="archive-path-input" name="imap_server" type="text" value="{{.IMAPServer}}" placeholder="imap.example.com" autocomplete="url" required></label>
++<label class="imap-field">Порт TLS<input class="archive-path-input" name="imap_port" type="number" min="1" max="65535" value="{{.IMAPPort}}" required></label>
++<label class="imap-field">Имя пользователя<input class="archive-path-input" name="imap_username" type="text" value="{{.IMAPUsername}}" autocomplete="username" required></label>
++<label class="imap-field">Пароль<input class="archive-path-input" name="imap_password" type="password" autocomplete="new-password" placeholder="{{if .IMAPHasPassword}}Оставьте пустым, чтобы сохранить текущий{{else}}Введите пароль{{end}}" {{if not .IMAPHasPassword}}required{{end}}></label>
++<label class="imap-field">Интервал, минут<input class="archive-path-input" name="imap_poll_interval" type="number" min="1" max="1440" value="{{.IMAPPollInterval}}" required></label>
++</div>
++<p class="archive-path-help">Используется TLS. Если пароль уже сохранён, поле можно не заполнять. Пароль не отображается в форме.</p>
++<div class="archive-path-actions"><button class="button button-primary" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-5L4 8m0-5v5h5M4 13a8 8 0 0 0 14 5l2-2m0 5v-5h-5"/></svg>Проверить соединение и сохранить</button></div>
++</form>
++{{if .IMAPMessage}}<p class="archive-path-message {{.IMAPMessageType}}" role="status">{{.IMAPMessage}}</p>{{end}}
++</article>
++<article class="panel settings-card settings-wide mailbox-watch-card">
++<div class="panel-heading"><div><div class="panel-kicker">АРХИВАЦИЯ</div><h2>Папки для отслеживания</h2></div><span class="mailbox-hint-badge">SQLite</span></div>
++<p class="imap-intro">Отметьте папки, из которых в будущем будут загружаться письма. Входящие выбраны по умолчанию; остальные новые папки нужно включить вручную. Ваш выбор сохраняется между перезапусками.</p>
++{{if .Mailboxes}}
++<form class="mailbox-watch-form" action="/settings/mailboxes" method="post">
++<div class="mailbox-list">
++{{range .Mailboxes}}
++<label class="mailbox-row {{if .Watched}}is-watched{{end}}">
++<input type="checkbox" name="watched_mailbox" value="{{.Name}}" {{if .Watched}}checked{{end}}>
++<span class="mailbox-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>
++<span class="mailbox-folder-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg></span>
++<span class="mailbox-copy"><strong>{{.DisplayName}}</strong><small>{{if .Watched}}Будет отслеживаться{{else}}Не отслеживается{{end}}</small></span>
++<span class="mailbox-row-state">{{if .Watched}}ВКЛ{{else}}ВЫКЛ{{end}}</span>
++</label>
++{{end}}
++</div>
++<div class="mailbox-actions"><button class="button button-primary" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 4v6h8V4M8 20v-6h8v6"/></svg>Сохранить выбор папок</button></div>
++</form>
++{{else}}
++<div class="mailbox-empty"><span class="mailbox-empty-icon"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg></span><div><strong>Папки пока не загружены</strong><p>Сначала проверьте подключение IMAP. Полученные папки появятся здесь; список не выводится в сообщении о подключении.</p></div></div>
++{{end}}
++{{if .FolderMessage}}<p class="archive-path-message {{.FolderMessageType}}" role="status">{{.FolderMessage}}</p>{{end}}
+ </article>
+ <article class="panel settings-card">
+ <div class="panel-heading"><div><div class="panel-kicker">ХРАНИЛИЩЕ</div><h2>Папка архива</h2></div></div>
+@@ -92,7 +165,7 @@
+ <article class="panel settings-card settings-wide">
+ <div class="panel-heading"><div><div class="panel-kicker">ДИАГНОСТИКА</div><h2>Состояние приложения</h2></div></div>
+ <div class="diagnostic-row"><span class="diagnostic-key"><span class="footer-live-dot"></span> Веб-интерфейс</span><span class="diagnostic-value">Работает</span></div>
+-<div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot idle"></span> IMAP-соединение</span><span class="diagnostic-value muted-text">Не подключено</span></div>
++<div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot {{if not .IMAPConfigured}}idle{{end}}"></span> Настройки IMAP</span>{{if .IMAPConfigured}}<span class="diagnostic-value">Сохранены</span>{{else}}<span class="diagnostic-value muted-text">Не настроены</span>{{end}}</div>
+ <div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot idle"></span> Архивация</span><span class="diagnostic-value muted-text">Не запущена</span></div>
+ <div class="diagnostic-row"><span class="diagnostic-key"><svg class="diagnostic-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg> Журнал событий</span><a class="text-link" href="/settings?section=logs">Открыть журнал →</a></div>
+ </article>
