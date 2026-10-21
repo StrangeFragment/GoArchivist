@@ -11,26 +11,10 @@
 
 ## Сборка Windows EXE
 
-В PowerShell из корня репозитория:
-
-```powershell
-.\scripts\build-windows.ps1
-```
-
-Скрипт генерирует ресурс Windows из `internal/app/assets/windows/goarchivist.ico` и собирает `dist/GoArchivist.exe` без консольного окна. Для генерации ресурса требуется доступ к модулю `github.com/akavel/rsrc@v0.10.2` при первом запуске.
-
 Файл `rsrc_windows_amd64.syso` уже включён в репозиторий. Поэтому для обычной сборки Windows/amd64 достаточно:
 
 ```powershell
 $env:GOOS = "windows"
 $env:GOARCH = "amd64"
-go build -ldflags "-H=windowsgui" -o dist/GoArchivist.exe .
+go build -ldflags "-H=windowsgui" -o GoArchivist.exe .
 ```
-
-## Запуск из исходников
-
-```sh
-go run .
-```
-
-По умолчанию веб-интерфейс доступен по адресу `http://127.0.0.1:8080`. Адрес можно изменить в пользовательском `config.json`.
