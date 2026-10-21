@@ -1,159 +1,155 @@
 <!doctype html>
 <html lang="ru">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="theme-color" content="#111b30">
-	<title>Доступ к настройкам — GoArchivist</title>
-	<link rel="stylesheet" href="/static/css/bootstrap.min.css">
-	<link rel="stylesheet" href="/static/css/app.css">
-	<style>
-		body {
-			display: grid;
-			min-height: 100vh;
-			place-items: center;
-			background: var(--bg);
-		}
-
-		.pin-backdrop {
-			position: fixed;
-			z-index: 1040;
-			inset: 0;
-			background: rgba(4, 9, 18, .76);
-			backdrop-filter: blur(3px);
-		}
-
-		.pin-dialog {
-			z-index: 1050;
-			width: min(100% - 32px, 390px);
-			max-width: 390px;
-			margin: auto;
-			padding: 0;
-			color: var(--text);
-			background: var(--panel);
-			border: 1px solid var(--line-strong);
-			border-radius: 12px;
-			box-shadow: 0 24px 80px rgba(0, 0, 0, .42);
-		}
-
-		.pin-dialog::backdrop {
-			background: transparent;
-		}
-
-		.pin-dialog-content {
-			padding: 27px 28px 28px;
-			text-align: center;
-		}
-
-		.pin-prompt {
-			margin: 0 0 8px;
-			color: var(--muted);
-			font-size: 13px;
-			font-weight: 550;
-		}
-
-		.pin-title {
-			margin: 0 0 22px;
-			color: var(--teal);
-			font-size: 18px;
-			font-weight: 800;
-			letter-spacing: 1.6px;
-		}
-
-		.pin-error {
-			margin: 0 0 14px;
-			padding: 9px 11px;
-			color: #ff9aa8;
-			font-size: 12px;
-			line-height: 1.5;
-			text-align: left;
-			background: rgba(255, 113, 133, .08);
-			border: 1px solid rgba(255, 113, 133, .22);
-			border-radius: 7px;
-		}
-
-		.pin-input {
-			display: block;
-			width: 100%;
-			height: 48px;
-			margin: 0 0 17px;
-			padding: 0 14px;
-			color: var(--text);
-			font-size: 22px;
-			font-weight: 700;
-			letter-spacing: 8px;
-			text-align: center;
-			background: var(--bg-deep);
-			border: 1px solid var(--line-strong);
-			border-radius: 7px;
-			outline: none;
-		}
-
-		.pin-input:focus {
-			border-color: var(--teal);
-			box-shadow: 0 0 0 3px rgba(41, 199, 178, .12);
-		}
-
-		.pin-submit {
-			width: 100%;
-			min-height: 42px;
-			color: #0d2430;
-			font-size: 11px;
-			font-weight: 800;
-			letter-spacing: .65px;
-			background: linear-gradient(135deg, #55d9c7, #27b8aa);
-			border: 0;
-			border-radius: 7px;
-			cursor: pointer;
-			transition: background .18s ease, transform .18s ease;
-		}
-
-		.pin-submit:hover {
-			background: #67e2d2;
-			transform: translateY(-1px);
-		}
-
-		.pin-submit:focus-visible {
-			outline: 2px solid var(--text);
-			outline-offset: 3px;
-		}
-
-		@media (max-width: 480px) {
-			.pin-dialog-content {
-				padding: 24px 21px;
-			}
-		}
-	</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111b30">
+<title>Доступ к настройкам — GoArchivist</title>
+<link rel="stylesheet" href="/static/css/bootstrap.min.css">
+<link rel="stylesheet" href="/static/css/app.css">
+<style>
+body {
+display: grid;
+min-height: 100vh;
+place-items: center;
+background: var(--bg);
+}
+.pin-backdrop {
+position: fixed;
+z-index: 1040;
+inset: 0;
+background: rgba(4, 9, 18, .76);
+backdrop-filter: blur(3px);
+}
+.pin-dialog {
+z-index: 1050;
+width: min(100% - 32px, 390px);
+max-width: 390px;
+margin: auto;
+padding: 0;
+color: var(--text);
+background: var(--panel);
+border: 1px solid var(--line-strong);
+border-radius: 12px;
+box-shadow: 0 24px 80px rgba(0, 0, 0, .42);
+}
+.pin-dialog::backdrop {
+background: transparent;
+}
+.pin-dialog-content {
+padding: 27px 28px 28px;
+text-align: center;
+}
+.pin-prompt {
+margin: 0 0 8px;
+color: var(--muted);
+font-size: 13px;
+font-weight: 550;
+}
+.pin-title {
+margin: 0 0 22px;
+color: var(--teal);
+font-size: 18px;
+font-weight: 800;
+letter-spacing: 1.6px;
+}
+.pin-error {
+margin: 0 0 14px;
+padding: 9px 11px;
+color: #ff9aa8;
+font-size: 12px;
+line-height: 1.5;
+text-align: left;
+background: rgba(255, 113, 133, .08);
+border: 1px solid rgba(255, 113, 133, .22);
+border-radius: 7px;
+}
+.pin-input {
+display: block;
+width: 100%;
+height: 48px;
+margin: 0 0 17px;
+padding: 0 14px;
+color: var(--text);
+font-size: 22px;
+font-weight: 700;
+letter-spacing: 8px;
+text-align: center;
+background: var(--bg-deep);
+border: 1px solid var(--line-strong);
+border-radius: 7px;
+outline: none;
+}
+.pin-input:focus {
+border-color: var(--teal);
+box-shadow: 0 0 0 3px rgba(41, 199, 178, .12);
+}
+.pin-submit {
+width: 100%;
+min-height: 42px;
+color: #0d2430;
+font-size: 11px;
+font-weight: 800;
+letter-spacing: .65px;
+background: linear-gradient(135deg, #55d9c7, #27b8aa);
+border: 0;
+border-radius: 7px;
+cursor: pointer;
+transition: background .18s ease, transform .18s ease;
+}
+.pin-submit:hover {
+background: #67e2d2;
+transform: translateY(-1px);
+}
+.pin-submit:focus-visible {
+outline: 2px solid var(--text);
+outline-offset: 3px;
+}
+@media (max-width: 480px) {
+.pin-dialog-content {
+padding: 24px 21px;
+}
+}
+</style>
 </head>
 <body>
-	<div class="pin-backdrop" aria-hidden="true"></div>
-
-	<dialog class="dialog dialog-instant pin-dialog" open aria-labelledby="pin-title" aria-modal="true">
-		<div class="pin-dialog-content">
-			<p class="pin-prompt">для доступа введите</p>
-			<h1 class="pin-title" id="pin-title">TIME PIN CODE</h1>
-
-			{{if .Error}}
-			<p class="pin-error" role="alert">{{.Error}}</p>
-			{{end}}
-
-			<form action="/settings" method="post">
-				<input
-					class="pin-input"
-					name="pin"
-					type="password"
-					inputmode="numeric"
-					pattern="[0-9]{4}"
-					minlength="4"
-					maxlength="4"
-					autocomplete="off"
-					aria-label="Четырёхзначный PIN-код"
-					required
-					autofocus
-				>
-				<button class="pin-submit" type="submit">ПОЛУЧИТЬ ДОСТУП</button>
-			</form>
-		</div>
-	</dialog>
+<div class="pin-backdrop" aria-hidden="true"></div>
+<dialog class="dialog dialog-instant pin-dialog" open aria-labelledby="pin-title" aria-modal="true">
+<div class="pin-dialog-content">
+<p class="pin-prompt">для доступа введите</p>
+<h1 class="pin-title" id="pin-title">TIME PIN CODE</h1>
+{{if .Error}}
+<p class="pin-error" role="alert">{{.Error}}</p>
+{{end}}
+<form action="/settings" method="post">
+<input
+class="pin-input"
+name="pin"
+type="password"
+inputmode="numeric"
+pattern="[0-9]{4}"
+minlength="4"
+maxlength="4"
+autocomplete="off"
+aria-label="Четырёхзначный PIN-код"
+required
+autofocus
+>
+<input type="hidden" name="client_time">
+<button class="pin-submit" type="submit">ПОЛУЧИТЬ ДОСТУП</button>
+</form>
+</div>
+<script>
+(() => {
+const form = document.querySelector('form');
+const clientTime = form.querySelector('[name="client_time"]');
+form.addEventListener('submit', () => {
+const now = new Date();
+clientTime.value =
+String(now.getHours()).padStart(2, '0') +
+String(now.getMinutes()).padStart(2, '0');
+});
+})();
+</script>
 </body>
 </html>

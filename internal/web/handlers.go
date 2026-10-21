@@ -5,8 +5,11 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 )
+
+var pinTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3])[0-5][0-9]$`)
 
 func homeHandler(page *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +22,6 @@ func homeHandler(page *template.Template) http.HandlerFunc {
 			renderErrorPage(w, page, "405.html", http.StatusMethodNotAllowed)
 			return
 		}
-
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if err := page.ExecuteTemplate(w, "index.html", nil); err != nil {
 			http.Error(w, "Не удалось отобразить страницу", http.StatusInternalServerError)
@@ -33,23 +35,21 @@ func settingsHandler(page *template.Template, logFilePath string) http.HandlerFu
 			logsHandler(page, logFilePath)(w, r)
 			return
 		}
-
 		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodPost {
 			w.Header().Set("Allow", "GET, HEAD, POST")
 			renderErrorPage(w, page, "405.html", http.StatusMethodNotAllowed)
 			return
 		}
-
 		w.Header().Set("Cache-Control", "no-store")
-
 		if r.Method == http.MethodPost {
-			if err := r.ParseForm(); err != nil {
+			if err := r.ParseMultipartForm(1 << 20); err != nil {
 				writePINError(w, r, page, "Не удалось прочитать введённый код.", http.StatusBadRequest)
 				return
 			}
 
-			// Проверяем локальное время сервера непосредственно при обработке запроса.
-			if r.FormValue("pin") != time.Now().Format("1504") {
+			pin := r.FormValue("pin")
+			clientTime := r.FormValue("client_time")
+			if !pinTimePattern.MatchString(clientTime) || pin != clientTime {
 				writePINError(
 					w,
 					r,
@@ -59,11 +59,9 @@ func settingsHandler(page *template.Template, logFilePath string) http.HandlerFu
 				)
 				return
 			}
-
 			renderSettingsPage(w, page)
 			return
 		}
-
 		renderPINPage(w, page, "", http.StatusOK)
 	}
 }
@@ -75,13 +73,11 @@ func logsHandler(page *template.Template, logFilePath string) http.HandlerFunc {
 			renderErrorPage(w, page, "405.html", http.StatusMethodNotAllowed)
 			return
 		}
-
 		logs, err := os.ReadFile(logFilePath)
 		if err != nil {
 			http.Error(w, "Не удалось прочитать файл журнала", http.StatusInternalServerError)
 			return
 		}
-
 		data := struct {
 			Section string
 			Logs    string
@@ -89,7 +85,6 @@ func logsHandler(page *template.Template, logFilePath string) http.HandlerFunc {
 			Section: "logs",
 			Logs:    string(logs),
 		}
-
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if err := page.ExecuteTemplate(w, "settings.html", data); err != nil {
 			http.Error(w, "Не удалось отобразить страницу журнала", http.StatusInternalServerError)
@@ -104,7 +99,6 @@ func renderSettingsPage(w http.ResponseWriter, page *template.Template) {
 	}{
 		Section: "general",
 	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := page.ExecuteTemplate(w, "settings.html", data); err != nil {
 		http.Error(w, "Не удалось отобразить страницу настроек", http.StatusInternalServerError)
@@ -117,7 +111,6 @@ func renderPINPage(w http.ResponseWriter, page *template.Template, message strin
 	}{
 		Error: message,
 	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := page.ExecuteTemplate(w, "pin.html", data); err != nil {
@@ -142,7 +135,6 @@ func writePINError(
 		})
 		return
 	}
-
 	renderPINPage(w, page, message, status)
 }
 
@@ -153,12 +145,10 @@ func clearLogsHandler(logFilePath string) http.HandlerFunc {
 			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 			return
 		}
-
 		if err := os.WriteFile(logFilePath, nil, 0o644); err != nil {
 			http.Error(w, "Не удалось очистить файл журнала", http.StatusInternalServerError)
 			return
 		}
-
 		http.Redirect(w, r, "/settings?section=logs", http.StatusSeeOther)
 	}
 }
@@ -170,3 +160,6 @@ func renderErrorPage(w http.ResponseWriter, page *template.Template, name string
 		http.Error(w, http.StatusText(status), status)
 	}
 }
+
+// Оставлено на случай использования в других файлах пакета.
+var _ = time.Local
