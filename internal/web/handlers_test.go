@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"GoArchivist/internal/storage"
 )
 
 func TestSettingsTemplatesRenderIMAPForm(t *testing.T) {
@@ -19,6 +21,11 @@ func TestSettingsTemplatesRenderIMAPForm(t *testing.T) {
 		Section:          "general",
 		IMAPPort:         993,
 		IMAPPollInterval: 5,
+		Mailboxes: []storage.Mailbox{{
+			Name:        "INBOX",
+			DisplayName: "Входящие",
+			Watched:     true,
+		}},
 	})
 
 	body := response.Body.String()
@@ -29,6 +36,9 @@ func TestSettingsTemplatesRenderIMAPForm(t *testing.T) {
 		`name="imap_username"`,
 		`name="imap_password"`,
 		"Проверить соединение и сохранить",
+		`action="/settings/mailboxes"`,
+		`value="INBOX" checked`,
+		"Входящие",
 	} {
 		if !strings.Contains(body, expected) {
 			t.Errorf("rendered settings page missing %q", expected)
@@ -46,16 +56,5 @@ func TestPINFormRequestAcceptsURLFormEncoding(t *testing.T) {
 	}
 	if got := r.FormValue("pin"); got != "1234" {
 		t.Fatalf("pin = %q, want 1234", got)
-	}
-}
-
-func TestChooseMailbox(t *testing.T) {
-	mailboxes := []string{"INBOX", "Archive/2025"}
-
-	if got, ok := chooseMailbox("inbox", mailboxes); !ok || got != "INBOX" {
-		t.Fatalf("chooseMailbox(inbox) = (%q, %v), want (INBOX, true)", got, ok)
-	}
-	if _, ok := chooseMailbox("Missing", mailboxes); ok {
-		t.Fatal("chooseMailbox accepted a mailbox not returned by the server")
 	}
 }

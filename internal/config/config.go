@@ -37,7 +37,6 @@ type IMAPConfig struct {
 	Port                int    `json:"port"`
 	Username            string `json:"username"`
 	Password            string `json:"password"`
-	Mailbox             string `json:"mailbox"`
 	PollIntervalMinutes int    `json:"poll_interval_minutes"`
 }
 
@@ -52,7 +51,6 @@ func Default() Config {
 		},
 		IMAP: IMAPConfig{
 			Port:                993,
-			Mailbox:             "INBOX",
 			PollIntervalMinutes: 5,
 		},
 		Archive: ArchiveConfig{
@@ -147,9 +145,6 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.IMAP.Port == 0 {
 		cfg.IMAP.Port = defaults.IMAP.Port
-	}
-	if cfg.IMAP.Mailbox == "" {
-		cfg.IMAP.Mailbox = defaults.IMAP.Mailbox
 	}
 	if cfg.IMAP.PollIntervalMinutes <= 0 {
 		cfg.IMAP.PollIntervalMinutes = defaults.IMAP.PollIntervalMinutes

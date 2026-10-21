@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -13,6 +14,7 @@ import (
 	"GoArchivist/internal/archive"
 	"GoArchivist/internal/config"
 	mailclient "GoArchivist/internal/mail"
+	"GoArchivist/internal/storage"
 )
 
 var pinTimePattern = regexp.MustCompile(`^(?:[01][0-9]|2[0-3])[0-5][0-9]$`)
@@ -24,16 +26,17 @@ type settingsPageData struct {
 	Message          string
 	MessageType      string
 
-	IMAPServer       string
-	IMAPPort         int
-	IMAPUsername     string
-	IMAPMailbox      string
-	IMAPPollInterval int
-	IMAPHasPassword  bool
-	IMAPConfigured   bool
-	IMAPMessage      string
-	IMAPMessageType  string
-	Mailboxes        []string
+	IMAPServer        string
+	IMAPPort          int
+	IMAPUsername      string
+	IMAPPollInterval  int
+	IMAPHasPassword   bool
+	IMAPConfigured    bool
+	IMAPMessage       string
+	IMAPMessageType   string
+	Mailboxes         []storage.Mailbox
+	FolderMessage     string
+	FolderMessageType string
 }
 
 func homeHandler(page *template.Template) http.HandlerFunc {
@@ -120,25 +123,23 @@ func imapSettingsHandler(page *template.Template) http.HandlerFunc {
 			return
 		}
 		if err := r.ParseForm(); err != nil {
-			renderIMAPResult(w, page, cfg, "Не удалось прочитать параметры подключения.", "error", nil)
+			renderSettingsPage(w, page, "Не удалось прочитать параметры подключения.", "error")
 			return
 		}
 
 		server := strings.TrimSpace(r.FormValue("imap_server"))
 		username := strings.TrimSpace(r.FormValue("imap_username"))
-		mailbox := strings.TrimSpace(r.FormValue("imap_mailbox"))
 		password := r.FormValue("imap_password")
 		if password == "" {
 			password = cfg.IMAP.Password
 		}
-
 		port, portErr := strconv.Atoi(r.FormValue("imap_port"))
 		pollInterval, intervalErr := strconv.Atoi(r.FormValue("imap_poll_interval"))
-		showResult := func(current config.Config, message, messageType string, mailboxes []string) {
+
+		showResult := func(current config.Config, message, messageType string) {
 			data := settingsData(current)
 			data.IMAPServer = server
 			data.IMAPUsername = username
-			data.IMAPMailbox = mailbox
 			if portErr == nil {
 				data.IMAPPort = port
 			}
@@ -147,16 +148,20 @@ func imapSettingsHandler(page *template.Template) http.HandlerFunc {
 			}
 			data.IMAPMessage = message
 			data.IMAPMessageType = messageType
-			data.Mailboxes = mailboxes
+			data.Mailboxes, err = loadMailboxCatalog(paths.Database)
+			if err != nil {
+				data.FolderMessage = "Не удалось загрузить сохранённый список папок: " + err.Error()
+				data.FolderMessageType = "error"
+			}
 			renderSettingsData(w, page, data)
 		}
 
 		if server == "" || username == "" || password == "" || portErr != nil || port < 1 || port > 65535 {
-			showResult(cfg, "Заполните IMAP-сервер, порт, имя пользователя и пароль. Порт должен быть от 1 до 65535.", "error", nil)
+			showResult(cfg, "Заполните IMAP-сервер, порт, имя пользователя и пароль. Порт должен быть от 1 до 65535.", "error")
 			return
 		}
 		if intervalErr != nil || pollInterval < 1 || pollInterval > 1440 {
-			showResult(cfg, "Интервал проверки должен быть от 1 до 1440 минут.", "error", nil)
+			showResult(cfg, "Интервал проверки должен быть от 1 до 1440 минут.", "error")
 			return
 		}
 
@@ -166,76 +171,106 @@ func imapSettingsHandler(page *template.Template) http.HandlerFunc {
 			if r.FormValue("imap_password") != "" {
 				message += " Новый пароль не сохранён — введите его повторно."
 			}
-			showResult(cfg, message, "error", nil)
+			showResult(cfg, message, "error")
 			return
 		}
 		if len(mailboxes) == 0 {
-			message := "Соединение установлено, но сервер не вернул список папок. Настройки не сохранены."
+			message := "Соединение установлено, но сервер не вернул папки. Настройки не сохранены."
 			if r.FormValue("imap_password") != "" {
 				message += " Новый пароль не сохранён — введите его повторно."
 			}
-			showResult(cfg, message, "error", mailboxes)
-			return
-		}
-
-		selectedMailbox, ok := chooseMailbox(mailbox, mailboxes)
-		if !ok {
-			message := fmt.Sprintf("Соединение проверено, но папка %q не найдена. Выберите папку из списка; настройки пока не сохранены.", mailbox)
-			if r.FormValue("imap_password") != "" {
-				message += " Новый пароль не сохранён — введите его повторно."
-			}
-			showResult(cfg, message, "error", mailboxes)
+			showResult(cfg, message, "error")
 			return
 		}
 
 		previousConfig := cfg
-		cfg.IMAP = config.IMAPConfig{
-			Server:              server,
-			Port:                port,
-			Username:            username,
-			Password:            password,
-			Mailbox:             selectedMailbox,
-			PollIntervalMinutes: pollInterval,
-		}
-		mailbox = selectedMailbox
+		cfg.IMAP.Server = server
+		cfg.IMAP.Port = port
+		cfg.IMAP.Username = username
+		cfg.IMAP.Password = password
+		cfg.IMAP.PollIntervalMinutes = pollInterval
 		if err := config.Save(paths.ConfigFile, cfg); err != nil {
 			message := fmt.Sprintf("Соединение проверено, но настройки не удалось сохранить: %v", err)
 			if r.FormValue("imap_password") != "" {
 				message += " Новый пароль не сохранён — введите его повторно."
 			}
-			showResult(previousConfig, message, "error", mailboxes)
+			showResult(previousConfig, message, "error")
 			return
 		}
 
-		showResult(cfg, fmt.Sprintf("Соединение успешно. Настройки сохранены; найдено папок: %d.", len(mailboxes)), "success", mailboxes)
-	}
-}
-
-func chooseMailbox(requested string, mailboxes []string) (string, bool) {
-	if requested == "" {
-		requested = "INBOX"
-	}
-	for _, mailbox := range mailboxes {
-		if mailbox == requested || strings.EqualFold(mailbox, requested) {
-			return mailbox, true
+		db, err := storage.Open(paths.Database)
+		if err != nil {
+			showResult(cfg, "Соединение успешно, параметры сохранены, но не удалось обновить список папок: "+err.Error(), "error")
+			return
 		}
+		refreshErr := storage.RefreshMailboxes(r.Context(), db, mailboxes)
+		closeErr := db.Close()
+		if refreshErr != nil {
+			showResult(cfg, "Соединение успешно, параметры сохранены, но список папок не обновлён: "+refreshErr.Error(), "error")
+			return
+		}
+		if closeErr != nil {
+			showResult(cfg, "Соединение и сохранение прошли успешно, но базу данных не удалось закрыть: "+closeErr.Error(), "error")
+			return
+		}
+
+		showResult(cfg, "Соединение успешно. Настройки сохранены. Выберите папки для отслеживания ниже.", "success")
 	}
-	return "", false
 }
 
-func renderIMAPResult(
-	w http.ResponseWriter,
-	page *template.Template,
-	cfg config.Config,
-	message string,
-	messageType string,
-	mailboxes []string,
-) {
-	data := settingsData(cfg)
-	data.IMAPMessage = message
-	data.IMAPMessageType = messageType
-	data.Mailboxes = mailboxes
-	renderSettingsData(w, page, data)
+func watchedMailboxesHandler(page *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", "POST")
+			renderErrorPage(w, page, "405.html", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		if err := r.ParseForm(); err != nil {
+			renderMailboxSelectionPage(w, page, "Не удалось прочитать выбранные папки.", "error")
+			return
+		}
+
+		_, paths, err := config.Load()
+		if err != nil {
+			http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
+			return
+		}
+		db, err := storage.Open(paths.Database)
+		if err != nil {
+			renderMailboxSelectionPage(w, page, "Не удалось открыть базу данных папок: "+err.Error(), "error")
+			return
+		}
+		selected := r.Form["watched_mailbox"]
+		saveErr := storage.SaveWatchedMailboxes(r.Context(), db, selected)
+		closeErr := db.Close()
+		if saveErr != nil {
+			renderMailboxSelectionPage(w, page, saveErr.Error(), "error")
+			return
+		}
+		if closeErr != nil {
+			renderMailboxSelectionPage(w, page, "Выбор сохранён, но базу данных не удалось закрыть: "+closeErr.Error(), "error")
+			return
+		}
+		if len(selected) == 0 {
+			renderMailboxSelectionPage(w, page, "Выбор сохранён. Сейчас ни одна папка не отслеживается.", "success")
+			return
+		}
+		unique := make(map[string]struct{}, len(selected))
+		for _, name := range selected {
+			unique[name] = struct{}{}
+		}
+		renderMailboxSelectionPage(w, page, fmt.Sprintf("Выбор сохранён. Отслеживается папок: %d.", len(unique)), "success")
+	}
+}
+
+func loadMailboxCatalog(databasePath string) ([]storage.Mailbox, error) {
+	db, err := storage.Open(databasePath)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+	return storage.ListMailboxes(context.Background(), db)
 }
 
 func archiveDirectoryHandler(page *template.Template) http.HandlerFunc {
@@ -336,7 +371,6 @@ func settingsData(cfg config.Config) settingsPageData {
 		IMAPServer:       cfg.IMAP.Server,
 		IMAPPort:         cfg.IMAP.Port,
 		IMAPUsername:     cfg.IMAP.Username,
-		IMAPMailbox:      cfg.IMAP.Mailbox,
 		IMAPPollInterval: cfg.IMAP.PollIntervalMinutes,
 		IMAPHasPassword:  cfg.IMAP.Password != "",
 		IMAPConfigured:   cfg.IMAP.Server != "" && cfg.IMAP.Username != "" && cfg.IMAP.Password != "",
@@ -349,7 +383,7 @@ func renderSettingsPage(
 	message string,
 	messageType string,
 ) {
-	cfg, _, err := config.Load()
+	cfg, paths, err := config.Load()
 	if err != nil {
 		http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
 		return
@@ -358,6 +392,33 @@ func renderSettingsPage(
 	data := settingsData(cfg)
 	data.Message = message
 	data.MessageType = messageType
+	data.Mailboxes, err = loadMailboxCatalog(paths.Database)
+	if err != nil {
+		data.FolderMessage = "Не удалось загрузить список папок: " + err.Error()
+		data.FolderMessageType = "error"
+	}
+	renderSettingsData(w, page, data)
+}
+
+func renderMailboxSelectionPage(
+	w http.ResponseWriter,
+	page *template.Template,
+	message string,
+	messageType string,
+) {
+	cfg, paths, err := config.Load()
+	if err != nil {
+		http.Error(w, "Не удалось загрузить настройки приложения", http.StatusInternalServerError)
+		return
+	}
+	data := settingsData(cfg)
+	data.FolderMessage = message
+	data.FolderMessageType = messageType
+	data.Mailboxes, err = loadMailboxCatalog(paths.Database)
+	if err != nil {
+		data.FolderMessage = "Не удалось загрузить список папок: " + err.Error()
+		data.FolderMessageType = "error"
+	}
 	renderSettingsData(w, page, data)
 }
 
