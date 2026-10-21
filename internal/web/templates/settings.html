@@ -1,66 +1,82 @@
 <!doctype html>
 <html lang="ru">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Настройки — GoArchivist</title>
-	<link rel="stylesheet" href="/static/css/bootstrap.min.css">
-	<link rel="stylesheet" href="/static/css/app.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111b30">
+    <title>{{if eq .Section "logs"}}Журнал событий{{else}}Настройки{{end}} — GoArchivist</title>
+    <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
 <div class="app-shell">
-	<header class="navbar navbar-dark bg-dark app-header">
-		<div class="container-fluid">
-			<a class="navbar-brand mb-0" href="/">GoArchivist</a>
-			<nav aria-label="Основное меню">
-				<a class="nav-link text-light" href="/">Главная</a>
-			</nav>
-		</div>
-	</header>
-	<div class="app-main">
-		<aside class="app-sidebar border-end" aria-label="Разделы администрирования">
-			<div class="p-3">
-				<h2 class="h6">Администрирование</h2>
-				<nav class="nav nav-pills flex-column">
-					<a class="nav-link {{if eq .Section "general"}}active{{end}}"
-					   href="/settings">Общее</a>
-					<a class="nav-link {{if eq .Section "logs"}}active{{end}}"
-					   href="/settings?section=logs">Логи</a>
-				</nav>
-			</div>
-		</aside>
-		<main class="app-content">
-			<div class="container-fluid p-4">
-				{{if eq .Section "logs"}}
-					<h1>Логи</h1>
-					<pre class="log-viewer">{{.Logs}}</pre>
-				{{else}}
-					<h1>Общие настройки</h1>
-					<p class="text-muted">Здесь будут общие настройки приложения.</p>
-				{{end}}
-			</div>
-		</main>
-	</div>
-	<footer class="app-footer border-top bg-light">
-		<div class="app-status" role="status">
-			<span class="status-indicator" aria-hidden="true"></span>
-			Готово
-		</div>
-		<div class="d-flex align-items-center gap-2">
-			{{if eq .Section "logs"}}
-				<button class="btn btn-outline-secondary btn-sm" type="button">
-					Сохранить
-				</button>
-				<form action="/settings/clear-logs" method="post">
-					<button class="btn btn-outline-danger btn-sm" type="submit">
-						Очистить
-					</button>
-				</form>
-			{{end}}
-			<a class="btn btn-outline-secondary btn-sm" href="/">На главную</a>
-		</div>
-	</footer>
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="GoArchivist — главная">
+            <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5zm1.8-.3 7.2 5.4 7.2-5.4"/></svg></span>
+            <span class="brand-name">Go<span>Archivist</span></span>
+        </a>
+        <div class="topbar-main">
+            <button class="icon-button menu-toggle" type="button" data-sidebar-toggle aria-label="Открыть меню" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+            <div class="topbar-context"><span class="context-dot"></span> Локальный почтовый архив</div>
+            <a class="topbar-action" href="/" title="На главную"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg><span>Главная</span></a>
+        </div>
+    </header>
+    <div class="workspace">
+        <aside class="sidebar" id="sidebar" aria-label="Главная навигация">
+            <div class="sidebar-heading">РАБОЧАЯ ОБЛАСТЬ</div>
+            <nav class="side-nav">
+                <a class="side-link" href="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg><span>Обзор</span></a>
+                <a class="side-link" href="/settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg><span>Почтовый ящик</span><span class="side-badge">0</span></a>
+                <a class="side-link {{if eq .Section "logs"}}active{{end}}" href="/settings?section=logs" {{if eq .Section "logs"}}aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg><span>Журнал событий</span>{{if eq .Section "logs"}}<span class="nav-indicator"></span>{{end}}</a>
+            </nav>
+            <div class="sidebar-heading sidebar-heading-spaced">СИСТЕМА</div>
+            <nav class="side-nav">
+                <a class="side-link {{if ne .Section "logs"}}active{{end}}" href="/settings" {{if ne .Section "logs"}}aria-current="page"{{end}}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg><span>Настройки</span>{{if ne .Section "logs"}}<span class="nav-indicator"></span>{{end}}</a>
+            </nav>
+            <div class="sidebar-bottom"><div class="sidebar-mini-card"><span class="mini-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/></svg></span><div><strong>Ваш архив</strong><small>Хранится локально</small></div></div><div class="sidebar-version">GOARCHIVIST <span>•</span> ЛОКАЛЬНО</div></div>
+        </aside>
+        <main class="main-scroll">
+            <div class="content-wrap">
+                <section class="page-heading">
+                    <div>
+                        <div class="eyebrow"><span class="eyebrow-line"></span> СИСТЕМА</div>
+                        {{if eq .Section "logs"}}<h1>Журнал событий</h1><p class="page-subtitle">Диагностические сообщения приложения.</p>{{else}}<h1>Настройки</h1><p class="page-subtitle">Управление параметрами GoArchivist.</p>{{end}}
+                    </div>
+                    {{if eq .Section "logs"}}<a class="button button-secondary" href="/settings?section=logs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-5L4 8m0-5v5h5M4 13a8 8 0 0 0 14 5l2-2m0 5v-5h-5"/></svg>Обновить</a>{{end}}
+                </section>
+                {{if eq .Section "logs"}}
+                <section class="panel logs-panel">
+                    <div class="panel-heading">
+                        <div><div class="panel-kicker">GOARCHIVIST.LOG</div><h2>Записи журнала</h2></div>
+                        <span class="log-count-label">ТЕКСТОВЫЙ ЖУРНАЛ</span>
+                    </div>
+                    <pre class="log-viewer">{{if .Logs}}{{.Logs}}{{else}}Журнал пока пуст.{{end}}</pre>
+                    <div class="log-panel-foot"><span><span class="footer-live-dot"></span> Показано содержимое текущего журнала</span><form action="/settings/clear-logs" method="post" data-confirm="Очистить журнал событий? Это действие нельзя отменить."><button class="button button-danger" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg>Очистить журнал</button></form></div>
+                </section>
+                {{else}}
+                <section class="settings-grid">
+                    <article class="panel settings-card">
+                        <div class="panel-heading"><div><div class="panel-kicker">ПОЧТОВЫЙ ИСТОЧНИК</div><h2>Подключение IMAP</h2></div><span class="status-pill warning"><span class="pill-dot"></span> Не настроено</span></div>
+                        <div class="settings-placeholder"><span class="placeholder-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg></span><div><h3>Настройка подключения ещё не реализована</h3><p>Параметры IMAP пока не редактируются через веб-интерфейс. Подключение почтового клиента находится в разработке.</p></div></div>
+                    </article>
+                    <article class="panel settings-card">
+                        <div class="panel-heading"><div><div class="panel-kicker">ХРАНИЛИЩЕ</div><h2>Папка архива</h2></div></div>
+                        <div class="settings-placeholder"><span class="placeholder-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z"/></svg></span><div><h3>Архивирование пока не включено</h3><p>Логика сохранения писем и вложений будет добавлена отдельно. Сейчас приложение показывает только веб-интерфейс.</p></div></div>
+                    </article>
+                    <article class="panel settings-card settings-wide">
+                        <div class="panel-heading"><div><div class="panel-kicker">ДИАГНОСТИКА</div><h2>Состояние приложения</h2></div></div>
+                        <div class="diagnostic-row"><span class="diagnostic-key"><span class="footer-live-dot"></span> Веб-интерфейс</span><span class="diagnostic-value">Работает</span></div>
+                        <div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot idle"></span> IMAP-соединение</span><span class="diagnostic-value muted-text">Не подключено</span></div>
+                        <div class="diagnostic-row"><span class="diagnostic-key"><span class="diagnostic-dot idle"></span> Архивация</span><span class="diagnostic-value muted-text">Не запущена</span></div>
+                        <div class="diagnostic-row"><span class="diagnostic-key"><svg class="diagnostic-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg> Журнал событий</span><a class="text-link" href="/settings?section=logs">Открыть журнал →</a></div>
+                    </article>
+                </section>
+                {{end}}
+            </div>
+        </main>
+    </div>
+    <footer class="app-footer"><div class="footer-left"><span class="footer-brand-mark">G</span><span>GoArchivist</span><span class="footer-separator">/</span><span class="footer-muted">Локальный почтовый архив</span></div><div class="footer-right"><span class="footer-live-dot"></span> Приложение запущено <span class="footer-divider"></span><span class="footer-muted">Версия 0.1</span></div></footer>
 </div>
-<script src="/static/js/bootstrap.min.js"></script>
+<div class="sidebar-backdrop" data-sidebar-close></div>
+<script src="/static/js/app.js" defer></script>
 </body>
 </html>

@@ -3,53 +3,136 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GoArchivist</title>
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <meta name="theme-color" content="#111b30">
+    <title>Обзор — GoArchivist</title>
     <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
-    <div class="app-shell">
-        <header class="navbar navbar-dark bg-dark app-header">
-            <div class="container-fluid">
-                <a class="navbar-brand mb-0" href="/">GoArchivist</a>
-                <nav aria-label="Основное меню">
-                    <a class="nav-link text-light" href="/">Главная</a>
-                </nav>
-            </div>
-        </header>
-
-        <div class="app-main">
-            <aside class="app-sidebar border-end" aria-label="Панель управления">
-                <div class="p-3">
-                    <h2 class="h6">Панель управления</h2>
-                    <p class="text-muted small mb-0">Здесь появятся элементы управления.</p>
-                </div>
-            </aside>
-
-            <main class="app-content">
-                <div class="container-fluid p-4">
-                    <h1>GoArchivist</h1>
-                    <p class="lead">Архиватор почтовых вложений</p>
-                </div>
-            </main>
-        </div>
-
-        <footer class="app-footer border-top bg-light">
-            <div class="app-status" role="status">
-                <span class="status-indicator" aria-hidden="true"></span>
-                Готово
-            </div>
-
-            <a class="btn btn-outline-secondary btn-sm" href="/settings" aria-label="Настройки">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                     fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M9.605 1.05a1.5 1.5 0 0 0-3.21 0l-.18.72a5.7 5.7 0 0 0-.9.52l-.7-.24a1.5 1.5 0 0 0-1.97 1.13l-.18.72a1.5 1.5 0 0 0 1.03 1.75l.68.23a5.7 5.7 0 0 0 0 1.04l-.68.23a1.5 1.5 0 0 0-1.03 1.75l.18.72a1.5 1.5 0 0 0 1.97 1.13l.7-.24c.28.2.58.37.9.52l.18.72a1.5 1.5 0 0 0 3.21 0l.18-.72c.32-.15.62-.32.9-.52l.7.24a1.5 1.5 0 0 0 1.97-1.13l.18-.72a1.5 1.5 0 0 0-1.03-1.75l-.68-.23a5.7 5.7 0 0 0 0-1.04l.68-.23a1.5 1.5 0 0 0 1.03-1.75l-.18-.72a1.5 1.5 0 0 0-1.97-1.13l-.7.24a5.7 5.7 0 0 0-.9-.52l-.18-.72ZM8 10.25A2.25 2.25 0 1 1 8 5.75a2.25 2.25 0 0 1 0 4.5Z"/>
-                </svg>
-                <span class="ms-1">Настройки</span>
+<div class="app-shell">
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="GoArchivist — главная">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5zm1.8-.3 7.2 5.4 7.2-5.4"/></svg>
+            </span>
+            <span class="brand-name">Go<span>Archivist</span></span>
+        </a>
+        <div class="topbar-main">
+            <button class="icon-button menu-toggle" type="button" data-sidebar-toggle aria-label="Открыть меню" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div class="topbar-context"><span class="context-dot"></span> Локальный почтовый архив</div>
+            <a class="topbar-action" href="/settings" title="Настройки">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg>
+                <span>Настройки</span>
             </a>
-        </footer>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <aside class="sidebar" id="sidebar" aria-label="Главная навигация">
+            <div class="sidebar-heading">РАБОЧАЯ ОБЛАСТЬ</div>
+            <nav class="side-nav">
+                <a class="side-link active" href="/" aria-current="page">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>
+                    <span>Обзор</span><span class="nav-indicator"></span>
+                </a>
+                <a class="side-link" href="/settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg>
+                    <span>Почтовый ящик</span><span class="side-badge">0</span>
+                </a>
+                <a class="side-link" href="/settings?section=logs">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
+                    <span>Журнал событий</span>
+                </a>
+            </nav>
+            <div class="sidebar-heading sidebar-heading-spaced">СИСТЕМА</div>
+            <nav class="side-nav">
+                <a class="side-link" href="/settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></svg>
+                    <span>Настройки</span>
+                </a>
+            </nav>
+            <div class="sidebar-bottom">
+                <div class="sidebar-mini-card">
+                    <span class="mini-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/></svg></span>
+                    <div><strong>Ваш архив</strong><small>Хранится локально</small></div>
+                </div>
+                <div class="sidebar-version">GOARCHIVIST <span>•</span> ЛОКАЛЬНО</div>
+            </div>
+        </aside>
+
+        <main class="main-scroll">
+            <div class="content-wrap">
+                <section class="page-heading">
+                    <div>
+                        <div class="eyebrow"><span class="eyebrow-line"></span> ЦЕНТР УПРАВЛЕНИЯ</div>
+                        <h1>Обзор архива</h1>
+                        <p class="page-subtitle">Состояние почтового архива и последние события.</p>
+                    </div>
+                    <a class="button button-primary" href="/settings">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m-5 5 5-5 5 5M4 14v6h16v-6"/></svg>
+                        Настроить архив
+                    </a>
+                </section>
+
+                <section class="stat-grid" aria-label="Сводка архива">
+                    <article class="stat-card">
+                        <div class="stat-card-top"><span class="stat-icon teal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg></span><span class="stat-label">ПИСЕМ В АРХИВЕ</span></div>
+                        <div class="stat-value">0</div><div class="stat-foot"><span class="status-pill muted">Пока нет данных</span></div><div class="stat-accent teal-bg"></div>
+                    </article>
+                    <article class="stat-card">
+                        <div class="stat-card-top"><span class="stat-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l5 5v13H6zM14 3v6h5M9 14h7M9 17h7"/></svg></span><span class="stat-label">ВЛОЖЕНИЙ СОХРАНЕНО</span></div>
+                        <div class="stat-value">0</div><div class="stat-foot"><span class="status-pill muted">Ожидает настройки</span></div><div class="stat-accent purple-bg"></div>
+                    </article>
+                    <article class="stat-card">
+                        <div class="stat-card-top"><span class="stat-icon amber"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="stat-label">ПОСЛЕДНЯЯ СИНХРОНИЗАЦИЯ</span></div>
+                        <div class="stat-value stat-value-small">—</div><div class="stat-foot"><span class="status-pill muted">Ещё не запускалась</span></div><div class="stat-accent amber-bg"></div>
+                    </article>
+                    <article class="stat-card">
+                        <div class="stat-card-top"><span class="stat-icon coral"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9zM12 12l8.5-4.5M12 12v9m0-9L3.5 7.5"/></svg></span><span class="stat-label">СОСТОЯНИЕ ИСТОЧНИКА</span></div>
+                        <div class="stat-value stat-value-small">Не подключён</div><div class="stat-foot"><span class="status-pill warning"><span class="pill-dot"></span> Требуется настройка</span></div><div class="stat-accent coral-bg"></div>
+                    </article>
+                </section>
+
+                <section class="dashboard-grid">
+                    <article class="panel activity-panel">
+                        <div class="panel-heading">
+                            <div><div class="panel-kicker">ОБЗОР</div><h2>Последние события</h2></div>
+                            <a class="text-link" href="/settings?section=logs">Открыть журнал <span aria-hidden="true">↗</span></a>
+                        </div>
+                        <div class="empty-state">
+                            <div class="empty-illustration" aria-hidden="true">
+                                <span class="orbit orbit-one"></span><span class="orbit orbit-two"></span>
+                                <svg viewBox="0 0 64 64"><path d="M12 18h40v30H12zM12 21l20 15 20-15"/><path d="M20 12h24"/></svg>
+                            </div>
+                            <h3>Архив ещё не настроен</h3>
+                            <p>Подключите почтовый ящик, чтобы начать собирать письма и сохранять вложения в локальный архив.</p>
+                            <a class="button button-secondary" href="/settings">Перейти к настройкам <span aria-hidden="true">→</span></a>
+                        </div>
+                    </article>
+                    <aside class="panel quick-panel">
+                        <div class="panel-heading"><div><div class="panel-kicker">БЫСТРЫЙ ДОСТУП</div><h2>Разделы</h2></div></div>
+                        <a class="quick-link" href="/settings"><span class="quick-icon teal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg></span><span><strong>Подключение почты</strong><small>Параметры источника</small></span><span class="quick-arrow">›</span></a>
+                        <a class="quick-link" href="/settings?section=logs"><span class="quick-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg></span><span><strong>Журнал событий</strong><small>Диагностика приложения</small></span><span class="quick-arrow">›</span></a>
+                        <div class="quick-note"><span class="note-dot"></span><span>Данные хранятся на этом устройстве.</span></div>
+                    </aside>
+                </section>
+
+                <section class="panel roadmap-panel">
+                    <div class="roadmap-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 7l8 6 8-6"/></svg></div>
+                    <div><div class="panel-kicker">GOARCHIVIST</div><h2>Ваш личный почтовый архив</h2><p>Интерфейс готов к подключению почты. Настройка IMAP и обработка вложений будут доступны по мере реализации этих компонентов.</p></div>
+                    <span class="roadmap-status"><i></i> В разработке</span>
+                </section>
+            </div>
+        </main>
     </div>
 
-    <script src="/static/js/bootstrap.min.js"></script>
+    <footer class="app-footer">
+        <div class="footer-left"><span class="footer-brand-mark">G</span><span>GoArchivist</span><span class="footer-separator">/</span><span class="footer-muted">Локальный почтовый архив</span></div>
+        <div class="footer-right"><span class="footer-live-dot"></span> Приложение запущено <span class="footer-divider"></span><span class="footer-muted">Версия 0.1</span></div>
+    </footer>
+</div>
+<div class="sidebar-backdrop" data-sidebar-close></div>
+<script src="/static/js/app.js" defer></script>
 </body>
 </html>
