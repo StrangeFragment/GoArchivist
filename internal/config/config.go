@@ -33,10 +33,12 @@ type WebConfig struct {
 }
 
 type IMAPConfig struct {
-	Server   string `json:"server"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Mailbox  string `json:"mailbox"`
+	Server              string `json:"server"`
+	Port                int    `json:"port"`
+	Username            string `json:"username"`
+	Password            string `json:"password"`
+	Mailbox             string `json:"mailbox"`
+	PollIntervalMinutes int    `json:"poll_interval_minutes"`
 }
 
 type ArchiveConfig struct {
@@ -49,8 +51,9 @@ func Default() Config {
 			Address: "127.0.0.1:8080",
 		},
 		IMAP: IMAPConfig{
-			Port:    993,
-			Mailbox: "INBOX",
+			Port:                993,
+			Mailbox:             "INBOX",
+			PollIntervalMinutes: 5,
 		},
 		Archive: ArchiveConfig{
 			Directory: "",
@@ -68,7 +71,6 @@ func UserPaths() (Paths, error) {
 	}
 
 	configDir := filepath.Join(configRoot, appDirectoryName)
-
 	paths := Paths{
 		ConfigDir:  configDir,
 		ConfigFile: filepath.Join(configDir, configFileName),
@@ -111,6 +113,7 @@ func Load() (Config, Paths, error) {
 	}
 
 	applyDefaults(&cfg)
+
 	return cfg, paths, nil
 }
 
@@ -123,12 +126,12 @@ func Save(path string, cfg Config) error {
 		return fmt.Errorf("не удалось создать папку настроек: %w", err)
 	}
 
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	data, err := json.MarshalIndent(cfg, "", " ")
 	if err != nil {
 		return fmt.Errorf("не удалось подготовить config.json: %w", err)
 	}
-	data = append(data, '\n')
 
+	data = append(data, '\n')
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return fmt.Errorf("не удалось сохранить config.json: %w", err)
 	}
@@ -147,6 +150,9 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.IMAP.Mailbox == "" {
 		cfg.IMAP.Mailbox = defaults.IMAP.Mailbox
+	}
+	if cfg.IMAP.PollIntervalMinutes <= 0 {
+		cfg.IMAP.PollIntervalMinutes = defaults.IMAP.PollIntervalMinutes
 	}
 
 	// Archive.Directory намеренно не заполняется автоматически:
